@@ -4,9 +4,11 @@ import { useState, useEffect } from 'react';
 import { analyzeLocal } from './lib/analyze';
 import type { Analysis } from './lib/analyze';
 import {
-  upsertRecord, getAllRecords, deleteRecord, getRecordsForRange, buildExportText, today,
+  upsertRecord, getAllRecords, deleteRecord, getRecordsForRange, buildExportText, today, pullFromCloud,
 } from './lib/storage';
 import type { DailyRecord, ExportRange, FormData } from './lib/storage';
+import { isConfigured } from './lib/db';
+import PinGate from './components/PinGate';
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
@@ -34,6 +36,30 @@ const OVERALL_STYLE: Record<string, string> = {
 // ─── main page ────────────────────────────────────────────────────────────────
 
 export default function Home() {
+  const [pinHash, setPinHash] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
+
+  async function handleUnlock(hash: string) {
+    setPinHash(hash);
+    if (isConfigured()) {
+      setSyncing(true);
+      await pullFromCloud(hash).catch(() => {});
+      setSyncing(false);
+    }
+  }
+
+  if (!pinHash) return <PinGate onUnlock={handleUnlock} />;
+  if (syncing) return (
+    <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-[#0b1220]">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-600 border-t-sky-400" />
+      <p className="text-sm text-slate-400">กำลังซิงค์ข้อมูล…</p>
+    </div>
+  );
+
+  return <App pinHash={pinHash} />;
+}
+
+function App({ pinHash }: { pinHash: string }) {
   const [tab, setTab] = useState<'form' | 'history'>('form');
   const [form, setForm] = useState<FormData>(EMPTY);
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +83,7 @@ export default function Home() {
 
   function handleSave() {
     if (!result) return;
-    upsertRecord(form, result);
+    upsertRecord(form, result, pinHash);
     setSaved(true);
     setRecords(getAllRecords());
   }
@@ -67,7 +93,7 @@ export default function Home() {
   }
 
   function handleDelete(date: string) {
-    deleteRecord(date); setRecords(getAllRecords());
+    deleteRecord(date, pinHash); setRecords(getAllRecords());
   }
 
   return (
@@ -92,7 +118,7 @@ export default function Home() {
         <FormTab form={form} error={error} result={result} saved={saved}
           onChange={handleChange} onSubmit={handleSubmit} onSave={handleSave} />
       ) : (
-        <HistoryTab records={records} onLoad={loadRecord} onDelete={handleDelete} />
+        <HistoryTab records={records} pinHash={pinHash} onLoad={loadRecord} onDelete={handleDelete} />
       )}
     </main>
   );
@@ -201,11 +227,13 @@ function ResultCard({ result, saved, onSave }: { result: Analysis; saved: boolea
 
 // ─── history tab ─────────────────────────────────────────────────────────────
 
-function HistoryTab({ records, onLoad, onDelete }: {
+function HistoryTab({ records, pinHash, onLoad, onDelete }: {
   records: DailyRecord[];
+  pinHash: string;
   onLoad: (r: DailyRecord) => void;
   onDelete: (date: string) => void;
 }) {
+  const synced = isConfigured();
   const [range, setRange] = useState<ExportRange>('week');
   const [exported, setExported] = useState(false);
 
@@ -246,6 +274,10 @@ function HistoryTab({ records, onLoad, onDelete }: {
           {exported ? '✓ ดาวน์โหลดแล้ว' : '⬇️ ดาวน์โหลด .txt'}
         </button>
         <p className="mt-2 text-[11px] text-slate-500">นำไฟล์ไปวางใน ChatGPT / Claude เพื่อวิเคราะห์แนวโน้มต่อได้เลย</p>
+        <div className={`mt-2 flex items-center gap-1.5 text-[11px] ${synced ? 'text-emerald-400' : 'text-slate-500'}`}>
+          <span className={`h-1.5 w-1.5 rounded-full ${synced ? 'bg-emerald-400' : 'bg-slate-600'}`} />
+          {synced ? 'ซิงค์ข้ามอุปกรณ์ด้วย PIN เดิม' : 'Local only — เพิ่ม Supabase env เพื่อ sync'}
+        </div>
       </div>
 
       {/* record list */}

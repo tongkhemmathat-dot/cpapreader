@@ -1,4 +1,5 @@
 import type { Analysis } from './analyze';
+import { syncUpsert, syncDelete, fetchAll } from './db';
 
 export type FormData = {
   usage: string; pressure: string; p90: string; ahi: string;
@@ -24,12 +25,13 @@ function save(db: Record<string, DailyRecord>) {
   localStorage.setItem(KEY, JSON.stringify(db));
 }
 
-export function upsertRecord(form: FormData, result: Analysis, date?: string): DailyRecord {
+export function upsertRecord(form: FormData, result: Analysis, pinHash?: string, date?: string): DailyRecord {
   const db = load();
   const d = date ?? today();
   const rec: DailyRecord = { id: d, date: d, savedAt: new Date().toISOString(), form, result };
   db[d] = rec;
   save(db);
+  if (pinHash) syncUpsert(pinHash, rec).catch(() => {});
   return rec;
 }
 
@@ -37,10 +39,25 @@ export function getAllRecords(): DailyRecord[] {
   return Object.values(load()).sort((a, b) => b.date.localeCompare(a.date));
 }
 
-export function deleteRecord(date: string) {
+export function deleteRecord(date: string, pinHash?: string) {
   const db = load();
   delete db[date];
   save(db);
+  if (pinHash) syncDelete(pinHash, date).catch(() => {});
+}
+
+export async function pullFromCloud(pinHash: string): Promise<number> {
+  const remote = await fetchAll(pinHash);
+  if (!remote.length) return 0;
+  const db = load();
+  let merged = 0;
+  for (const rec of remote) {
+    if (!db[rec.date] || rec.savedAt > db[rec.date].savedAt) {
+      db[rec.date] = rec; merged++;
+    }
+  }
+  if (merged) save(db);
+  return merged;
 }
 
 export function today(): string {
