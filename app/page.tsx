@@ -398,11 +398,11 @@ function HistoryTab({ records, pinHash, onLoad, onDelete }: {
         <div className="space-y-3">
           {records.map((rec) => (
             <div key={rec.id} className="rounded-[24px] border border-white/10 bg-white/[0.04] overflow-hidden">
-              <button onClick={() => onLoad(rec)} className="flex w-full items-center gap-4 px-4.5 py-4.5 active:bg-white/[0.06] transition-colors">
-                <span className="text-[26px] drop-shadow-md">{OVERALL_ICON[rec.result.overall] ?? '⚪'}</span>
-                <div className="flex-1 text-left">
-                  <div className="text-[15.5px] font-bold text-white tracking-wide">{fmtDate(rec.date)}</div>
-                  <div className="text-[13px] font-medium text-slate-400 mt-1 line-clamp-1">{rec.result.summary}</div>
+              <button onClick={() => onLoad(rec)} className="flex w-full items-center gap-4 px-5 py-5 active:bg-white/[0.06] transition-colors">
+                <span className="text-[26px] drop-shadow-md shrink-0">{OVERALL_ICON[rec.result.overall] ?? '⚪'}</span>
+                <div className="flex-1 text-left min-w-0">
+                  <div className="text-[15.5px] font-bold text-white tracking-wide truncate">{fmtDate(rec.date)}</div>
+                  <div className="text-[13px] font-medium text-slate-400 mt-1 truncate">{rec.result.summary}</div>
                 </div>
                 <div className="text-right shrink-0">
                   {rec.form.ahi && <div className="text-[15.5px] font-bold text-sky-400">AHI {rec.form.ahi}</div>}
@@ -430,7 +430,7 @@ function HistoryTab({ records, pinHash, onLoad, onDelete }: {
       )}
 
       {/* export */}
-      <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-5 space-y-4.5 mt-8">
+      <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-5 space-y-5 mt-8">
         <h3 className="text-[12px] font-bold uppercase tracking-widest text-slate-500">ดาวน์โหลดข้อมูล (.txt)</h3>
         <div className="flex gap-2.5">
           {(['day', 'week', 'month'] as ExportRange[]).map((r) => (
@@ -452,10 +452,6 @@ function HistoryTab({ records, pinHash, onLoad, onDelete }: {
           นำไฟล์ไปวางใน ChatGPT / Claude เพื่อให้ AI สรุปแนวโน้มให้
         </p>
       </div>
-    </div>
-  );
-}
->
     </div>
   );
 }
