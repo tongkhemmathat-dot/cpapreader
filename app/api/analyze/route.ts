@@ -4,42 +4,60 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-const SYSTEM_PROMPT = `คุณเป็นผู้ช่วยวิเคราะห์ข้อมูลจากเครื่อง CPAP รุ่น Aeonmed AS100A
-คุณจะได้รับข้อความดิบที่ OCR อ่านได้จากหน้าจอเครื่อง ซึ่งอาจมีตัวอักษรเบี้ยวหรือสัญลักษณ์แปลกปน
-
-ค่าที่ต้องหาจากข้อความ:
-- Usage time / ชั่วโมงการใช้งาน
-- AHI (Apnea-Hypopnea Index) ครั้ง/ชม.
-- Leak rate L/min
-- Pressure cmH2O (อาจมี Pmin/Pmax/P95/CPAP mode)
-- SpO2 (ถ้ามี)
-- วันที่/Session
-
-เกณฑ์ประเมิน: AHI <5 ดี, 5-15 ปานกลาง, >15 ไม่ดี / Leak <24 L/min ปกติ / Usage >=4 ชม.
+const SYSTEM_PROMPT = `คุณเป็นผู้ช่วยวิเคราะห์ผล CPAP ให้คนไข้ทั่วไปเข้าใจง่าย
+ใช้เกณฑ์มาตรฐาน AASM:
+- AHI: <5 = ปกติดี, 5-14 = เล็กน้อย, 15-29 = ปานกลาง, ≥30 = รุนแรง
+- CAI: <1 = ปกติ (>1 อาจเป็น central apnea หรือ treatment-emergent)
+- Leak90: <24 L/min = ปกติ, ≥24 = มีการรั่วสูง
+- Usage: ≥4 ชม./คืน = สม่ำเสมอ
+- Snore index: ควรต่ำ ถ้าสูงอาจต้องปรับความดันหรือหน้ากาก
+- P90: ความดันที่ใช้จริง 90% ของเวลา ควรไม่เกิน Pmax ที่ตั้งไว้
 
 ตอบเป็น JSON valid เท่านั้น (ห้ามมี markdown code fence):
 {
-  "summary": "สรุปภาษาไทย 1-2 ประโยค",
+  "summary": "สรุปภาษาไทย 2-3 ประโยค บอกผลโดยรวมและจุดเด่นที่สำคัญ",
   "overall": "good" | "fair" | "poor" | "unknown",
-  "metrics": [{ "label": "ชื่อค่า", "value": "ตัวเลข+หน่วย", "note": "ความหมาย (optional)" }],
-  "recommendations": ["คำแนะนำสั้น ๆ ภาษาไทย"],
-  "raw_readings": { "key": "value ดิบที่อ่านได้" }
-}
-
-ถ้าข้อความ OCR อ่านไม่ออกหรือไม่ใช่ข้อมูล CPAP ให้ overall="unknown" และอธิบายใน summary`;
+  "metrics": [
+    { "label": "ชื่อค่า", "value": "ค่าที่กรอก + หน่วย", "note": "ประเมินว่าปกติ/ต่ำ/สูง + ความหมายสั้น ๆ" }
+  ],
+  "recommendations": ["คำแนะนำเฉพาะเจาะจงจากค่าที่ผิดปกติ ถ้าทุกค่าปกติให้ชมและบอกให้รักษาพฤติกรรมเดิม"]
+}`;
 
 const FALLBACK_MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-8b'];
 
+type FormData = {
+  usage?: string; pressure?: string; p90?: string; ahi?: string;
+  snore?: string; leak90?: string; cai?: string; apnea?: string; hi?: string;
+};
+
+function buildPrompt(f: FormData): string {
+  const lines = [
+    f.usage    && `ระยะเวลาใช้งาน: ${f.usage} ชม.`,
+    f.pressure && `ความดันเฉลี่ย: ${f.pressure} cmH₂O`,
+    f.p90      && `P90: ${f.p90} cmH₂O`,
+    f.ahi      && `AHI: ${f.ahi} ครั้ง/ชม.`,
+    f.snore    && `ดัชนีการกรน: ${f.snore} ครั้ง/ชม.`,
+    f.leak90   && `LEAK90: ${f.leak90} L/min`,
+    f.cai      && `CAI: ${f.cai} ครั้ง/ชม.`,
+    f.apnea    && `ดัชนีการหยุดหายใจ: ${f.apnea} ครั้ง/ชม.`,
+    f.hi       && `HI: ${f.hi} ครั้ง/ชม.`,
+  ].filter(Boolean);
+
+  return `ค่าจากเครื่อง CPAP คืนนี้:\n${lines.join('\n')}\n\nวิเคราะห์และตอบเป็น JSON ตาม schema เท่านั้น`;
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const { ocrText } = await req.json();
-    if (!ocrText?.trim()) return NextResponse.json({ error: 'missing ocrText' }, { status: 400 });
+    const { formData } = await req.json() as { formData: FormData };
+    if (!formData || !Object.values(formData).some((v) => v?.trim())) {
+      return NextResponse.json({ error: 'กรุณากรอกค่าอย่างน้อย 1 ช่อง' }, { status: 400 });
+    }
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) return NextResponse.json({ error: 'GEMINI_API_KEY ยังไม่ได้ตั้งค่า' }, { status: 500 });
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const prompt = `ข้อความ OCR จากหน้าจอ CPAP:\n\`\`\`\n${ocrText}\n\`\`\`\nวิเคราะห์และตอบเป็น JSON ตาม schema เท่านั้น`;
+    const prompt = buildPrompt(formData);
 
     let text = '';
     let lastError: any;
@@ -64,7 +82,7 @@ export async function POST(req: NextRequest) {
     if (!text) {
       const is429 = lastError?.status === 429 || lastError?.message?.includes('429') || lastError?.message?.includes('quota');
       return NextResponse.json(
-        { error: is429 ? 'เกินโควต้า API กรุณารอสักครู่แล้วลองใหม่' : 'เกิดข้อผิดพลาด กรุณาลองใหม่' },
+        { error: is429 ? 'เกินโควต้า API กรุณารอสักครู่แล้วลองใหม่' : `เกิดข้อผิดพลาด: ${lastError?.message}` },
         { status: is429 ? 429 : 500 },
       );
     }
