@@ -9,58 +9,92 @@ const n = (v: string) => parseFloat(v);
 const has = (v: string) => v.trim() !== '' && !isNaN(parseFloat(v));
 
 function evalUsage(v: number): Metric {
-  if (v >= 7) return { label: 'ระยะเวลาใช้งาน', value: `${v} ชม.`, status: 'normal', note: 'ดีเยี่ยม (≥7 ชม.)' };
-  if (v >= 4) return { label: 'ระยะเวลาใช้งาน', value: `${v} ชม.`, status: 'normal', note: 'เพียงพอ (≥4 ชม.)' };
-  if (v >= 2) return { label: 'ระยะเวลาใช้งาน', value: `${v} ชม.`, status: 'warning', note: 'น้อยกว่าเกณฑ์ (<4 ชม.) — ควรสวมนานขึ้น' };
-  return { label: 'ระยะเวลาใช้งาน', value: `${v} ชม.`, status: 'alert', note: 'น้อยมาก (<2 ชม.) — ตรวจสอบว่าหน้ากากสบายพอไหม' };
+  if (v >= 7) return { label: 'ระยะเวลาใช้งาน', value: `${v} ชม.`, status: 'normal',
+    note: `ดีเยี่ยม — สวมหน้ากากครบ ${v} ชม. ร่างกายได้รับออกซิเจนอย่างเพียงพอตลอดคืน` };
+  if (v >= 4) return { label: 'ระยะเวลาใช้งาน', value: `${v} ชม.`, status: 'normal',
+    note: 'เพียงพอตามเกณฑ์มาตรฐาน (≥4 ชม.) — พยายามเพิ่มให้ถึง 7 ชม. เพื่อผลลัพธ์ที่ดีขึ้น' };
+  if (v >= 2) return { label: 'ระยะเวลาใช้งาน', value: `${v} ชม.`, status: 'warning',
+    note: `น้อยกว่าเกณฑ์ ${v} ชม. — การรักษาไม่สมบูรณ์ ร่างกายยังมีภาวะหยุดหายใจในช่วงที่ถอดหน้ากาก` };
+  return { label: 'ระยะเวลาใช้งาน', value: `${v} ชม.`, status: 'alert',
+    note: `น้อยมาก (${v} ชม.) — ตรวจสอบว่าหน้ากากไม่สบาย มีเสียงรบกวน หรือสายรัดแน่นเกินไป` };
 }
 
 function evalAHI(v: number): Metric {
-  if (v < 5)  return { label: 'AHI', value: `${v} ครั้ง/ชม.`, status: 'normal',  note: 'ปกติ — การรักษาได้ผลดี (<5)' };
-  if (v < 15) return { label: 'AHI', value: `${v} ครั้ง/ชม.`, status: 'warning', note: 'เล็กน้อย (5-14) — อาจต้องปรับความดัน' };
-  if (v < 30) return { label: 'AHI', value: `${v} ครั้ง/ชม.`, status: 'alert',   note: 'ปานกลาง (15-29) — ควรปรึกษาแพทย์' };
-  return             { label: 'AHI', value: `${v} ครั้ง/ชม.`, status: 'alert',   note: 'รุนแรง (≥30) — ต้องปรับการรักษาด่วน' };
+  if (v < 5)  return { label: 'AHI', value: `${v} ครั้ง/ชม.`, status: 'normal',
+    note: `CPAP ทำงานได้ดีมาก — หยุดหายใจเฉลี่ยเพียง ${v} ครั้ง/ชม. ทางเดินหายใจเปิดโล่งแทบตลอดคืน` };
+  if (v < 15) return { label: 'AHI', value: `${v} ครั้ง/ชม.`, status: 'warning',
+    note: `OSA เล็กน้อย — ความดันอาจยังไม่พอ ลองตรวจสอบว่าหน้ากากรั่วหรือนอนตะแคงเพิ่มช่วยได้` };
+  if (v < 30) return { label: 'AHI', value: `${v} ครั้ง/ชม.`, status: 'alert',
+    note: `OSA ปานกลาง — ยังหยุดหายใจบ่อย ควรปรึกษาแพทย์เพื่อปรับช่วงความดัน (Pmin/Pmax)` };
+  return             { label: 'AHI', value: `${v} ครั้ง/ชม.`, status: 'alert',
+    note: `OSA รุนแรง — การรักษาด้วยความดันปัจจุบันไม่เพียงพอ ต้องพบแพทย์เพื่อปรับการตั้งค่า` };
 }
 
 function evalCAI(v: number): Metric {
-  if (v < 1)  return { label: 'CAI', value: `${v} ครั้ง/ชม.`, status: 'normal',  note: 'ปกติ (<1)' };
-  if (v < 5)  return { label: 'CAI', value: `${v} ครั้ง/ชม.`, status: 'warning', note: 'สูงกว่าปกติ (1-4) — อาจเป็น treatment-emergent' };
-  return             { label: 'CAI', value: `${v} ครั้ง/ชม.`, status: 'alert',   note: 'สูงมาก (≥5) — ควรแจ้งแพทย์' };
+  if (v < 1)  return { label: 'CAI', value: `${v} ครั้ง/ชม.`, status: 'normal',
+    note: 'สมองส่งสัญญาณสั่งหายใจปกติ ไม่พบการหยุดหายใจจากระบบประสาทส่วนกลาง' };
+  if (v < 5)  return { label: 'CAI', value: `${v} ครั้ง/ชม.`, status: 'warning',
+    note: `สูงกว่าปกติ — อาจเป็น Treatment-Emergent Central Apnea (TECA) ที่เกิดจากความดัน CPAP สูงเกินไป` };
+  return             { label: 'CAI', value: `${v} ครั้ง/ชม.`, status: 'alert',
+    note: `สูงมาก — อาจต้องเปลี่ยนเป็น BiPAP/ASV หรือตรวจหาสาเหตุอื่น เช่น หัวใจล้มเหลว ควรพบแพทย์` };
 }
 
 function evalLeak90(v: number): Metric {
-  if (v < 24) return { label: 'LEAK90', value: `${v} L/min`, status: 'normal',  note: 'ปกติ (<24 L/min)' };
-  if (v < 40) return { label: 'LEAK90', value: `${v} L/min`, status: 'warning', note: 'รั่วปานกลาง (24-39) — ปรับสายรัดหรือหมอนรองหน้ากาก' };
-  return             { label: 'LEAK90', value: `${v} L/min`, status: 'alert',   note: 'รั่วมาก (≥40) — ตรวจสอบหน้ากากและหัวต่อ' };
+  if (v < 10) return { label: 'LEAK90', value: `${v} L/min`, status: 'normal',
+    note: 'หน้ากากกระชับดีเยี่ยม การรั่วน้อยมาก ความดันลมส่งถึงทางเดินหายใจได้เต็มที่' };
+  if (v < 24) return { label: 'LEAK90', value: `${v} L/min`, status: 'normal',
+    note: `รั่วอยู่ในเกณฑ์ยอมรับ (${v} L/min < 24) — ความดันยังคงมีประสิทธิภาพ` };
+  if (v < 40) return { label: 'LEAK90', value: `${v} L/min`, status: 'warning',
+    note: `รั่วปานกลาง — ลองปรับสายรัด เปลี่ยน cushion หรือใช้ chin strap ถ้าปากอ้า` };
+  return             { label: 'LEAK90', value: `${v} L/min`, status: 'alert',
+    note: `รั่วมาก — ความดันที่ส่งถึงทางเดินหายใจลดลงมาก ตรวจสอบขนาดหน้ากากและหัวต่อทุกจุด` };
 }
 
 function evalSnore(v: number): Metric {
-  if (v < 1)  return { label: 'ดัชนีการกรน', value: `${v} ครั้ง/ชม.`, status: 'normal',  note: 'แทบไม่มีการกรน' };
-  if (v < 5)  return { label: 'ดัชนีการกรน', value: `${v} ครั้ง/ชม.`, status: 'normal',  note: 'กรนเล็กน้อย อยู่ในเกณฑ์ยอมรับ' };
-  if (v < 15) return { label: 'ดัชนีการกรน', value: `${v} ครั้ง/ชม.`, status: 'warning', note: 'กรนบ่อย — อาจต้องเพิ่มความดัน' };
-  return             { label: 'ดัชนีการกรน', value: `${v} ครั้ง/ชม.`, status: 'alert',   note: 'กรนมาก — ทางเดินหายใจยังถูกกีดขวาง' };
+  if (v < 1)  return { label: 'ดัชนีการกรน', value: `${v} ครั้ง/ชม.`, status: 'normal',
+    note: 'แทบไม่มีการกรน — ความดัน CPAP เปิดทางเดินหายใจได้สมบูรณ์' };
+  if (v < 5)  return { label: 'ดัชนีการกรน', value: `${v} ครั้ง/ชม.`, status: 'normal',
+    note: 'กรนเล็กน้อย — อยู่ในเกณฑ์ยอมรับ ทางเดินหายใจเปิดได้เกือบสมบูรณ์' };
+  if (v < 15) return { label: 'ดัชนีการกรน', value: `${v} ครั้ง/ชม.`, status: 'warning',
+    note: 'กรนบ่อย — ทางเดินหายใจส่วนบนยังแคบอยู่ ลองปรับท่านอนหรือเพิ่มความดันขั้นต่ำ' };
+  return             { label: 'ดัชนีการกรน', value: `${v} ครั้ง/ชม.`, status: 'alert',
+    note: 'กรนมาก — ความดัน CPAP ยังไม่พอเปิดทางเดินหายใจ หรือหน้ากากรั่วทำให้ประสิทธิภาพลด' };
 }
 
 function evalApnea(v: number): Metric {
-  if (v < 1)  return { label: 'ดัชนีการหยุดหายใจ (AI)', value: `${v} ครั้ง/ชม.`, status: 'normal',  note: 'ปกติ (<1)' };
-  if (v < 5)  return { label: 'ดัชนีการหยุดหายใจ (AI)', value: `${v} ครั้ง/ชม.`, status: 'warning', note: 'สูงเล็กน้อย (1-4)' };
-  return             { label: 'ดัชนีการหยุดหายใจ (AI)', value: `${v} ครั้ง/ชม.`, status: 'alert',   note: 'สูง (≥5) — หยุดหายใจสนิทบ่อย' };
+  if (v < 1)  return { label: 'ดัชนีการหยุดหายใจ (AI)', value: `${v} ครั้ง/ชม.`, status: 'normal',
+    note: 'แทบไม่มีการหยุดหายใจสนิท — CPAP ป้องกันการอุดกั้นทางเดินหายใจได้ดีมาก' };
+  if (v < 5)  return { label: 'ดัชนีการหยุดหายใจ (AI)', value: `${v} ครั้ง/ชม.`, status: 'warning',
+    note: `หยุดหายใจสนิท ${v} ครั้ง/ชม. — อาจเกิดช่วงนอนหงาย หรือ REM sleep ที่ต้องการความดันสูงกว่า` };
+  return             { label: 'ดัชนีการหยุดหายใจ (AI)', value: `${v} ครั้ง/ชม.`, status: 'alert',
+    note: 'หยุดหายใจสนิทบ่อย — ทางเดินหายใจถูกกีดขวางซ้ำ ๆ ต้องปรับความดันหรือตรวจสอบหน้ากาก' };
 }
 
 function evalHI(v: number): Metric {
-  if (v < 5)  return { label: 'HI', value: `${v} ครั้ง/ชม.`, status: 'normal',  note: 'ปกติ (<5)' };
-  if (v < 15) return { label: 'HI', value: `${v} ครั้ง/ชม.`, status: 'warning', note: 'สูงเล็กน้อย (5-14) — หายใจตื้นบ่อย' };
-  return             { label: 'HI', value: `${v} ครั้ง/ชม.`, status: 'alert',   note: 'สูง (≥15) — ควรปรึกษาแพทย์' };
+  if (v < 5)  return { label: 'HI', value: `${v} ครั้ง/ชม.`, status: 'normal',
+    note: 'หายใจตื้นน้อยมาก — ออกซิเจนในเลือดคงที่ตลอดคืน ร่างกายพักผ่อนได้เต็มที่' };
+  if (v < 15) return { label: 'HI', value: `${v} ครั้ง/ชม.`, status: 'warning',
+    note: `หายใจตื้น ${v} ครั้ง/ชม. — ออกซิเจนในเลือดอาจลดต่ำลงซ้ำ ๆ ส่งผลให้ตื่นนอนไม่สดชื่น` };
+  return             { label: 'HI', value: `${v} ครั้ง/ชม.`, status: 'alert',
+    note: 'หายใจตื้นบ่อยมาก — เทียบเท่า OSA ระดับปานกลาง ควรปรับ pressure support หรือปรึกษาแพทย์' };
 }
 
 function evalPressure(p: number, p90: number | null): Metric[] {
   const out: Metric[] = [];
-  out.push({ label: 'ความดันเฉลี่ย', value: `${p} hPa`, status: 'normal', note: 'ค่าอ้างอิงความดันทั้งคืน' });
+  out.push({ label: 'ความดันเฉลี่ย', value: `${p} hPa`, status: 'normal',
+    note: `ความดันที่เครื่องใช้จริงเฉลี่ยตลอดคืน — สะท้อนความต้องการโดยรวมของทางเดินหายใจ` });
   if (p90 !== null) {
-    const diff = p90 - p;
-    const diffStatus = diff > 4 ? 'warning' : 'normal';
-    const diffNote = diff > 4 ? `P90 สูงกว่าเฉลี่ย ${diff.toFixed(1)} hPa — มีช่วงที่ต้องการความดันสูงกว่าปกติ` : `P90 สูงกว่าเฉลี่ย ${diff.toFixed(1)} hPa — อยู่ในระดับดี`;
-    out.push({ label: 'P90', value: `${p90} hPa`, status: diffStatus, note: diffNote });
+    const diff = +(p90 - p).toFixed(1);
+    if (diff > 4) {
+      out.push({ label: 'P90', value: `${p90} hPa`, status: 'warning',
+        note: `สูงกว่าเฉลี่ย ${diff} hPa — มีช่วงที่ต้องการความดันสูงมาก อาจเป็นช่วง REM หรือนอนหงาย พิจารณาเพิ่ม Pmax` });
+    } else if (diff > 2) {
+      out.push({ label: 'P90', value: `${p90} hPa`, status: 'normal',
+        note: `สูงกว่าเฉลี่ย ${diff} hPa — เครื่องปรับความดันขึ้นบ้างตามความต้องการ ยังอยู่ในเกณฑ์ดี` });
+    } else {
+      out.push({ label: 'P90', value: `${p90} hPa`, status: 'normal',
+        note: `ใกล้เคียงค่าเฉลี่ย (ต่างกัน ${diff} hPa) — ทางเดินหายใจคงที่ตลอดคืน ไม่ต้องการความดันสูงเป็นพิเศษ` });
+    }
   }
   return out;
 }
