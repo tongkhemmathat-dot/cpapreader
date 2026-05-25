@@ -34,28 +34,50 @@ export async function POST(req: NextRequest) {
     if (!apiKey) return NextResponse.json({ error: 'GEMINI_API_KEY ยังไม่ได้ตั้งค่า' }, { status: 500 });
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
-      systemInstruction: SYSTEM_PROMPT,
-    });
+
+    const FALLBACK_MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-8b'];
+    const PROMPT_PARTS = [
+      { text: 'วิเคราะห์ภาพหน้าจอ CPAP นี้ ตอบเป็น JSON ตาม schema เท่านั้น' },
+      { inlineData: { mimeType: mediaType || 'image/jpeg', data: imageBase64 } },
+    ];
 
     let text = '';
-    for (let attempt = 0; attempt < 4; attempt++) {
-      try {
-        const result = await model.generateContent([
-          { text: 'วิเคราะห์ภาพหน้าจอ CPAP นี้ ตอบเป็น JSON ตาม schema เท่านั้น' },
-          { inlineData: { mimeType: mediaType || 'image/jpeg', data: imageBase64 } },
-        ]);
-        text = result.response.text().trim();
-        break;
-      } catch (e: any) {
-        const is429 = e?.status === 429 || e?.message?.includes('429') || e?.message?.includes('quota');
-        if (is429 && attempt < 3) {
-          await new Promise((r) => setTimeout(r, (attempt + 1) * 8000));
-          continue;
+    let lastError: any;
+
+    for (const modelName of FALLBACK_MODELS) {
+      const model = genAI.getGenerativeModel({ model: modelName, systemInstruction: SYSTEM_PROMPT });
+      let success = false;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const result = await model.generateContent(PROMPT_PARTS);
+          text = result.response.text().trim();
+          success = true;
+          break;
+        } catch (e: any) {
+          lastError = e;
+          const is429 = e?.status === 429 || e?.message?.includes('429') || e?.message?.includes('quota');
+          if (is429 && attempt === 0) {
+            await new Promise((r) => setTimeout(r, 4000));
+            continue;
+          }
+          break;
         }
-        throw e;
       }
+      if (success) break;
+    }
+
+    if (!text) {
+      const is429 =
+        lastError?.status === 429 ||
+        lastError?.message?.includes('429') ||
+        lastError?.message?.includes('quota');
+      if (is429) {
+        return NextResponse.json(
+          { error: 'เกินโควต้า API ในขณะนี้ กรุณารอสักครู่แล้วลองใหม่อีกครั้ง' },
+          { status: 429 },
+        );
+      }
+      throw lastError;
     }
     const cleaned = text.replace(/^```(?:json)?\s*|\s*```$/g, '').trim();
 
@@ -69,6 +91,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(parsed);
   } catch (err: any) {
     console.error(err);
-    return NextResponse.json({ error: err.message || 'internal error' }, { status: 500 });
+    const is429 = err?.status === 429 || err?.message?.includes('429') || err?.message?.includes('quota');
+    const msg = is429
+      ? 'เกินโควต้า API ในขณะนี้ กรุณารอสักครู่แล้วลองใหม่อีกครั้ง'
+      : 'เกิดข้อผิดพลาดในการวิเคราะห์ กรุณาลองใหม่อีกครั้ง';
+    return NextResponse.json({ error: msg }, { status: is429 ? 429 : 500 });
   }
 }
