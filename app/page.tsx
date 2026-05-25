@@ -373,7 +373,7 @@ function HistoryTab({ records, pinHash, onLoad, onDelete }: {
   return (
     <div className="space-y-4 animate-in fade-in duration-300">
       {/* sync row */}
-      <div className="flex items-center justify-between rounded-[20px] border border-white/10 bg-white/[0.04] px-4.5 py-4">
+      <div className="flex items-center justify-between rounded-[20px] border border-white/10 bg-white/[0.04] px-5 py-4">
         <div className={`flex items-center gap-3 text-[14px] font-medium ${synced ? 'text-emerald-400' : 'text-slate-500'}`}>
           <span className={`h-2.5 w-2.5 rounded-full ${synced ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]' : 'bg-slate-600'}`} />
           {synced ? (syncStatus !== 'idle' ? syncMsg : 'Cloud Sync เปิดใช้งาน') : 'บันทึกในเครื่องเท่านั้น'}
@@ -452,6 +452,10 @@ function HistoryTab({ records, pinHash, onLoad, onDelete }: {
           นำไฟล์ไปวางใน ChatGPT / Claude เพื่อให้ AI สรุปแนวโน้มให้
         </p>
       </div>
+    </div>
+  );
+}
+>
     </div>
   );
 }
