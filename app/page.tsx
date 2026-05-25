@@ -33,6 +33,29 @@ export default function Home() {
   const [pinHash, setPinHash] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
 
+  // ─── Auto-Refresh Logic (iOS PWA) ──────────────────────────────────────────
+  // ตรวจจับเมื่อผู้ใช้เปิดแอปขึ้นมาใหม่ (Wake up) หากขึ้นวันใหม่แล้วให้รีเฟรชแอป
+  // เพื่อล้างฟอร์มเก่าและอัปเดตสถิติให้เป็นปัจจุบัน
+  useEffect(() => {
+    let lastActiveDate = new Date().toDateString();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        const currentDate = new Date().toDateString();
+        // ถ้าระหว่างที่พับแอปทิ้งไว้แล้วข้ามวัน ให้จับรีเฟรชหน้าเลย
+        if (currentDate !== lastActiveDate) {
+          window.location.reload();
+        }
+      } else {
+        // อัปเดต state ของเวลาตอนแอปถูกพับเก็บ
+        lastActiveDate = new Date().toDateString();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
   async function handleUnlock(hash: string) {
     setPinHash(hash);
     if (isConfigured()) {
