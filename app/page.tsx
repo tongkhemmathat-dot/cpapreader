@@ -61,8 +61,22 @@ function App({ pinHash }: { pinHash: string }) {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [records, setRecords] = useState<DailyRecord[]>([]);
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
 
   useEffect(() => { setRecords(getAllRecords()); }, [tab]);
+
+  useEffect(() => {
+    const handleFocusIn = (e: FocusEvent) => {
+      if ((e.target as HTMLElement).tagName === 'INPUT') setIsKeyboardOpen(true);
+    };
+    const handleFocusOut = () => setIsKeyboardOpen(false);
+    window.addEventListener('focusin', handleFocusIn);
+    window.addEventListener('focusout', handleFocusOut);
+    return () => {
+      window.removeEventListener('focusin', handleFocusIn);
+      window.removeEventListener('focusout', handleFocusOut);
+    };
+  }, []);
 
   function handleChange(key: keyof FormData, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -116,7 +130,7 @@ function App({ pinHash }: { pinHash: string }) {
       </div>
 
       {/* bottom tab bar */}
-      <nav className="safe-bottom fixed inset-x-0 bottom-0 border-t border-slate-800 bg-slate-950/95 backdrop-blur-md">
+      <nav className={`safe-bottom fixed inset-x-0 bottom-0 border-t border-white/10 bg-black/60 backdrop-blur-2xl supports-[backdrop-filter]:bg-black/40 transition-transform duration-300 ${isKeyboardOpen ? 'translate-y-full' : 'translate-y-0'}`}>
         <div className="mx-auto flex max-w-xl">
           <TabBtn active={tab === 'form'} onClick={() => setTab('form')} icon="✏️" label="บันทึก" />
           <TabBtn active={tab === 'history'} onClick={() => setTab('history')} icon="📊" label={`ประวัติ${records.length ? ` ${records.length}` : ''}`} />
