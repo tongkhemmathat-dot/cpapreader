@@ -1,5 +1,6 @@
 export type Overall = 'good' | 'fair' | 'poor' | 'unknown';
-export type Metric = { label: string; value: string; status: 'normal' | 'warning' | 'alert'; note: string };
+export type MetricStatus = 'normal' | 'warning' | 'alert';
+export type Metric = { label: string; value: string; status: MetricStatus; note: string };
 export type Analysis = { overall: Overall; summary: string; metrics: Metric[]; recommendations: string[] };
 
 type FormData = { usage: string; pressure: string; p90: string; ahi: string; snore: string; leak90: string; cai: string; apnea: string; hi: string };
