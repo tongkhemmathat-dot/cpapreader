@@ -24,7 +24,7 @@ type Item = {
 
 const MAX_DIM = 1280;
 const QUALITY = 0.75;
-const MAX_CONCURRENCY = 2;
+const MAX_CONCURRENCY = 1;
 
 export default function Home() {
   const [items, setItems] = useState<Item[]>([]);

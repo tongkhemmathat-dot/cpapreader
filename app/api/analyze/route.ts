@@ -39,12 +39,24 @@ export async function POST(req: NextRequest) {
       systemInstruction: SYSTEM_PROMPT,
     });
 
-    const result = await model.generateContent([
-      { text: 'วิเคราะห์ภาพหน้าจอ CPAP นี้ ตอบเป็น JSON ตาม schema เท่านั้น' },
-      { inlineData: { mimeType: mediaType || 'image/jpeg', data: imageBase64 } },
-    ]);
-
-    const text = result.response.text().trim();
+    let text = '';
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        const result = await model.generateContent([
+          { text: 'วิเคราะห์ภาพหน้าจอ CPAP นี้ ตอบเป็น JSON ตาม schema เท่านั้น' },
+          { inlineData: { mimeType: mediaType || 'image/jpeg', data: imageBase64 } },
+        ]);
+        text = result.response.text().trim();
+        break;
+      } catch (e: any) {
+        const is429 = e?.status === 429 || e?.message?.includes('429') || e?.message?.includes('quota');
+        if (is429 && attempt < 3) {
+          await new Promise((r) => setTimeout(r, (attempt + 1) * 8000));
+          continue;
+        }
+        throw e;
+      }
+    }
     const cleaned = text.replace(/^```(?:json)?\s*|\s*```$/g, '').trim();
 
     let parsed;
