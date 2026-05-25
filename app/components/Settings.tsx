@@ -5,6 +5,8 @@ import { fullSync, getAllRecords } from '../lib/storage';
 import { isConfigured, fetchAll } from '../lib/db';
 import { clearPin } from '../lib/pin';
 
+import pkg from '../../package.json';
+
 type Status = 'checking' | 'ok' | 'not_configured' | 'error';
 
 export default function Settings({ pinHash }: { pinHash: string }) {
@@ -113,6 +115,11 @@ export default function Settings({ pinHash }: { pinHash: string }) {
           className="w-full rounded-xl border border-rose-500/30 py-2.5 text-sm text-rose-400 active:bg-rose-500/10 transition-colors">
           รีเซ็ต PIN บนอุปกรณ์นี้
         </button>
+      </div>
+
+      {/* version info */}
+      <div className="pt-6 pb-2 text-center">
+        <p className="text-[11px] font-medium text-slate-600 tracking-wider">SleepFlow v{pkg.version}</p>
       </div>
     </div>
   );
