@@ -97,7 +97,7 @@ function App({ pinHash }: { pinHash: string }) {
   }
 
   return (
-    <main className="mx-auto max-w-xl px-4 py-6 pb-8">
+    <main className="safe-top mx-auto max-w-xl px-4 pb-8">
       {/* header */}
       <header className="mb-5">
         <h1 className="text-2xl font-bold">CPAP Analyzer</h1>

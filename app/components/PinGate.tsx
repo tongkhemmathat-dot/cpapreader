@@ -58,7 +58,7 @@ export default function PinGate({ onUnlock }: Props) {
   const title = mode === 'enter' ? 'ใส่ PIN' : mode === 'create' ? 'ตั้ง PIN ใหม่ (4 หลัก)' : 'ยืนยัน PIN อีกครั้ง';
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-8 bg-[#0b1220]">
+    <div className="safe-top safe-bottom flex min-h-screen flex-col items-center justify-center px-8 bg-[#0b1220]">
       <div className="mb-8 text-center">
         <div className="text-4xl mb-2">🫁</div>
         <h1 className="text-xl font-bold text-white">CPAP Analyzer</h1>

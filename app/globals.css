@@ -3,3 +3,5 @@
 @tailwind utilities;
 
 html, body { background: #0b1220; color: #e6edf7; -webkit-tap-highlight-color: transparent; }
+.safe-top    { padding-top:    max(1.5rem, env(safe-area-inset-top)); }
+.safe-bottom { padding-bottom: max(1rem,   env(safe-area-inset-bottom)); }
