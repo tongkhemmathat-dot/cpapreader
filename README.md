@@ -1,36 +1,39 @@
-# CPAP Analyzer (Aeonmed AS100A)
+# CPAP Analyzer
 
-PWA สำหรับถ่ายรูปหน้าจอเครื่อง CPAP แล้วให้ Claude vision วิเคราะห์ผล
+PWA สำหรับบันทึกและวิเคราะห์ผลจากการใช้งานเครื่อง CPAP ประจำวัน 
+
+## ฟีเจอร์
+
+- 📝 **กรอกข้อมูลเองง่าย ๆ:** กรอกค่า Usage, AHI, Pressure, LEAK90 ฯลฯ ได้โดยตรง
+- ⚡ **วิเคราะห์ผลทันที:** ระบบมีเกณฑ์ประเมิน (Local Analysis) ทันทีไม่ต้องรอ API
+- 🔒 **ความเป็นส่วนตัวสูง:** ตั้งรหัส PIN 4 หลักก่อนเข้าใช้งาน
+- 📊 **บันทึกประวัติ:** ดูประวัติย้อนหลัง บันทึกลงเครื่อง (Local Storage)
+- ☁️ **Cloud Sync (Optional):** ซิงค์ข้อมูลข้ามอุปกรณ์ผ่าน Supabase
+- ⬇️ **Export ข้อมูล:** โหลดเป็นไฟล์ `.txt` เพื่อนำไปถาม ChatGPT / Claude ต่อได้
 
 ## รันบนเครื่อง
 
 ```bash
 npm install
-cp .env.example .env.local   # ใส่ ANTHROPIC_API_KEY
 npm run dev
 ```
 
-เปิด `http://localhost:3000` — บน iPhone ในวง LAN เดียวกันให้เข้า `http://<ip-เครื่อง>:3000`
+เปิด `http://localhost:3000` — บนมือถือในวง LAN เดียวกันให้เข้า `http://<ip-เครื่อง>:3000`
 
 ## Deploy บน Vercel (วิธีที่ง่ายที่สุด)
 
 1. Push โค้ดขึ้น GitHub
 2. ไปที่ [vercel.com/new](https://vercel.com/new) → Import repo
-3. ตั้งค่า Environment Variable: `ANTHROPIC_API_KEY`
+3. (Optional) ตั้งค่า Environment Variable สำหรับ Supabase (ถ้าต้องการใช้ระบบ Sync ข้ามอุปกรณ์)
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 4. Deploy → ได้ URL `https://xxx.vercel.app`
-5. บน iPhone เปิดด้วย Safari → กดปุ่ม Share → **Add to Home Screen** → ใช้เหมือนแอปได้เลย
+5. บน iPhone เปิดด้วย Safari → กดปุ่ม Share → **Add to Home Screen** → ใช้เป็นแอปพลิเคชันได้เลย
 
-## วิธีใช้
+## ไอคอนแอป
 
-1. เปิดแอป → กด "ถ่ายรูปหน้าจอ CPAP"
-2. iOS จะเปิดกล้องให้ ถ่ายภาพหน้าจอ Aeonmed AS100A ที่แสดงผลสรุป
-3. รอประมาณ 5-15 วินาที จะได้ผลวิเคราะห์ AHI, leak, ชั่วโมงใช้งาน พร้อมคำแนะนำ
-
-## ไอคอนแอป (ทำเพิ่มทีหลังก็ได้)
-
-วาง `icon-192.png` กับ `icon-512.png` ไว้ใน `public/` เพื่อให้ปุ่ม Add to Home Screen มีไอคอนสวย
+สามารถวาง `icon-192.png` กับ `icon-512.png` ไว้ในโฟลเดอร์ `public/` เพื่อให้ปุ่ม Add to Home Screen มีไอคอนสวยงาม
 
 ## ข้อจำกัด
 
-- ความแม่นยำขึ้นกับคุณภาพภาพ — ถ่ายตรง ๆ ไม่เอียง แสงพอดี
-- ไม่ใช่อุปกรณ์การแพทย์ ใช้ดูแนวโน้มเบื้องต้นเท่านั้น
+- ไม่ใช่อุปกรณ์หรือแอปพลิเคชันทางการแพทย์ ใช้สำหรับดูแนวโน้มเบื้องต้นเท่านั้น โปรดปรึกษาแพทย์หากมีอาการผิดปกติ
