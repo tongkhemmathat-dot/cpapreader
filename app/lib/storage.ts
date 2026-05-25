@@ -46,9 +46,9 @@ export function deleteRecord(date: string, pinHash?: string) {
   if (pinHash) syncDelete(pinHash, date).catch(() => {});
 }
 
+/** pull remote → local (newer wins) */
 export async function pullFromCloud(pinHash: string): Promise<number> {
   const remote = await fetchAll(pinHash);
-  if (!remote.length) return 0;
   const db = load();
   let merged = 0;
   for (const rec of remote) {
@@ -58,6 +58,22 @@ export async function pullFromCloud(pinHash: string): Promise<number> {
   }
   if (merged) save(db);
   return merged;
+}
+
+/** push all local records that cloud doesn't have (or local is newer) */
+export async function pushAllToCloud(pinHash: string): Promise<number> {
+  const db = load();
+  const records = Object.values(db);
+  if (!records.length) return 0;
+  await Promise.all(records.map((r) => syncUpsert(pinHash, r)));
+  return records.length;
+}
+
+/** full bi-directional sync: pull then push */
+export async function fullSync(pinHash: string): Promise<{ pulled: number; pushed: number }> {
+  const pulled = await pullFromCloud(pinHash);
+  const pushed = await pushAllToCloud(pinHash);
+  return { pulled, pushed };
 }
 
 export function today(): string {

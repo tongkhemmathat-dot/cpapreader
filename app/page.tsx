@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { analyzeLocal } from './lib/analyze';
 import type { Analysis } from './lib/analyze';
 import {
-  upsertRecord, getAllRecords, deleteRecord, getRecordsForRange, buildExportText, today, pullFromCloud,
+  upsertRecord, getAllRecords, deleteRecord, getRecordsForRange, buildExportText, today, fullSync,
 } from './lib/storage';
 import type { DailyRecord, ExportRange, FormData } from './lib/storage';
 import { isConfigured } from './lib/db';
@@ -43,7 +43,7 @@ export default function Home() {
     setPinHash(hash);
     if (isConfigured()) {
       setSyncing(true);
-      await pullFromCloud(hash).catch(() => {});
+      await fullSync(hash).catch(() => {});
       setSyncing(false);
     }
   }
@@ -234,6 +234,23 @@ function HistoryTab({ records, pinHash, onLoad, onDelete }: {
   onDelete: (date: string) => void;
 }) {
   const synced = isConfigured();
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'done' | 'error'>('idle');
+  const [syncMsg, setSyncMsg] = useState('');
+
+  async function handleSync() {
+    setSyncStatus('syncing');
+    try {
+      const { pulled, pushed } = await fullSync(pinHash);
+      setSyncMsg(`↓ ${pulled} ↑ ${pushed} รายการ`);
+      setSyncStatus('done');
+      // reload page so records update
+      window.location.reload();
+    } catch {
+      setSyncMsg('sync ล้มเหลว ตรวจสอบ internet');
+      setSyncStatus('error');
+    }
+    setTimeout(() => setSyncStatus('idle'), 3000);
+  }
   const [range, setRange] = useState<ExportRange>('week');
   const [exported, setExported] = useState(false);
 
@@ -274,9 +291,19 @@ function HistoryTab({ records, pinHash, onLoad, onDelete }: {
           {exported ? '✓ ดาวน์โหลดแล้ว' : '⬇️ ดาวน์โหลด .txt'}
         </button>
         <p className="mt-2 text-[11px] text-slate-500">นำไฟล์ไปวางใน ChatGPT / Claude เพื่อวิเคราะห์แนวโน้มต่อได้เลย</p>
-        <div className={`mt-2 flex items-center gap-1.5 text-[11px] ${synced ? 'text-emerald-400' : 'text-slate-500'}`}>
-          <span className={`h-1.5 w-1.5 rounded-full ${synced ? 'bg-emerald-400' : 'bg-slate-600'}`} />
-          {synced ? 'ซิงค์ข้ามอุปกรณ์ด้วย PIN เดิม' : 'Local only — เพิ่ม Supabase env เพื่อ sync'}
+        <div className="mt-3 flex items-center justify-between">
+          <div className={`flex items-center gap-1.5 text-[11px] ${synced ? 'text-emerald-400' : 'text-slate-500'}`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${synced ? 'bg-emerald-400' : 'bg-slate-600'}`} />
+            {synced ? (syncStatus === 'done' ? syncMsg : syncStatus === 'error' ? syncMsg : 'Cloud sync พร้อม') : 'Local only — เพิ่ม Supabase env เพื่อ sync'}
+          </div>
+          {synced && (
+            <button onClick={handleSync} disabled={syncStatus === 'syncing'}
+              className="flex items-center gap-1 rounded-lg border border-slate-700 px-2.5 py-1 text-xs text-slate-300 active:scale-95 disabled:opacity-50 transition-all">
+              {syncStatus === 'syncing'
+                ? <><span className="h-3 w-3 animate-spin rounded-full border border-slate-500 border-t-sky-400" />กำลัง sync…</>
+                : '☁️ Sync ตอนนี้'}
+            </button>
+          )}
         </div>
       </div>
 
