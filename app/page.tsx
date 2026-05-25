@@ -9,6 +9,7 @@ import {
 import type { DailyRecord, ExportRange, FormData } from './lib/storage';
 import { isConfigured } from './lib/db';
 import PinGate from './components/PinGate';
+import Settings from './components/Settings';
 
 // ─── field config ─────────────────────────────────────────────────────────────
 
@@ -54,7 +55,7 @@ export default function Home() {
 // ─── app shell ────────────────────────────────────────────────────────────────
 
 function App({ pinHash }: { pinHash: string }) {
-  const [tab, setTab] = useState<'form' | 'history'>('form');
+  const [tab, setTab] = useState<'form' | 'history' | 'settings'>('form');
   const [form, setForm] = useState<FormData>(EMPTY);
   const [result, setResult] = useState<Analysis | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -102,13 +103,15 @@ function App({ pinHash }: { pinHash: string }) {
         </div>
 
         <div className="px-4">
-          {tab === 'form' ? (
+          {tab === 'form' && (
             <FormTab form={form} error={error} result={result} saved={saved}
               onChange={handleChange} onClear={handleClear} onSubmit={handleSubmit} onSave={handleSave} />
-          ) : (
+          )}
+          {tab === 'history' && (
             <HistoryTab records={records} pinHash={pinHash}
               onLoad={loadRecord} onDelete={(d) => { deleteRecord(d, pinHash); setRecords(getAllRecords()); }} />
           )}
+          {tab === 'settings' && <Settings pinHash={pinHash} />}
         </div>
       </div>
 
@@ -117,6 +120,7 @@ function App({ pinHash }: { pinHash: string }) {
         <div className="mx-auto flex max-w-xl">
           <TabBtn active={tab === 'form'} onClick={() => setTab('form')} icon="✏️" label="บันทึก" />
           <TabBtn active={tab === 'history'} onClick={() => setTab('history')} icon="📊" label={`ประวัติ${records.length ? ` ${records.length}` : ''}`} />
+          <TabBtn active={tab === 'settings'} onClick={() => setTab('settings')} icon="⚙️" label="ตั้งค่า" />
         </div>
       </nav>
     </div>
