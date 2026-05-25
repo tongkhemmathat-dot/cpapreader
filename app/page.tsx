@@ -11,25 +11,31 @@ type Analysis = {
   raw_readings?: Record<string, string>;
 };
 
+type ItemStatus = 'compressing' | 'ocr' | 'analyzing' | 'done' | 'error';
+
 type Item = {
   id: string;
   name: string;
   previewUrl: string;
   origKB: number;
   sentKB: number;
-  status: 'compressing' | 'analyzing' | 'done' | 'error';
+  status: ItemStatus;
+  ocrText?: string;
   result?: Analysis;
   error?: string;
 };
 
 const MAX_DIM = 1280;
 const QUALITY = 0.75;
-const MAX_CONCURRENCY = 1;
 
 export default function Home() {
   const [items, setItems] = useState<Item[]>([]);
   const cameraRef = useRef<HTMLInputElement>(null);
   const browseRef = useRef<HTMLInputElement>(null);
+
+  function patch(id: string, update: Partial<Item>) {
+    setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...update } : it)));
+  }
 
   async function onFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
@@ -46,35 +52,34 @@ export default function Home() {
     }));
     setItems((prev) => [...newItems, ...prev]);
 
-    const queue = files.map((file, i) => ({ file, id: newItems[i].id }));
-    const workers = Array.from({ length: Math.min(MAX_CONCURRENCY, queue.length) }, async () => {
-      while (queue.length) {
-        const job = queue.shift();
-        if (!job) break;
-        await processOne(job.file, job.id);
-      }
-    });
-    await Promise.all(workers);
+    // process sequentially to avoid rate-limit
+    for (let i = 0; i < files.length; i++) {
+      await processOne(files[i], newItems[i].id);
+    }
   }
 
   async function processOne(file: File, id: string) {
     try {
+      // step 1: compress (for OCR canvas)
       const compressed = await compressImage(file, MAX_DIM, QUALITY);
-      const sentKB = Math.round((compressed.base64.length * 3) / 4 / 1024);
-      setItems((prev) => prev.map((it) => (it.id === id ? { ...it, sentKB, status: 'analyzing' } : it)));
+      patch(id, { status: 'ocr' });
 
+      // step 2: OCR in browser
+      const ocrText = await runOcr(compressed.dataUrl);
+      if (!ocrText.trim()) throw new Error('อ่านตัวอักษรจากภาพไม่ได้ ลองถ่ายใหม่ให้ชัดขึ้น');
+      patch(id, { ocrText, status: 'analyzing' });
+
+      // step 3: send OCR text to Gemini (no image)
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64: compressed.base64, mediaType: compressed.mediaType }),
+        body: JSON.stringify({ ocrText }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'การวิเคราะห์ล้มเหลว');
-      setItems((prev) => prev.map((it) => (it.id === id ? { ...it, status: 'done', result: json } : it)));
+      patch(id, { status: 'done', result: json });
     } catch (err: any) {
-      setItems((prev) =>
-        prev.map((it) => (it.id === id ? { ...it, status: 'error', error: err.message || 'error' } : it)),
-      );
+      patch(id, { status: 'error', error: err.message || 'error' });
     }
   }
 
@@ -86,26 +91,22 @@ export default function Home() {
     });
   }
 
-  function clearAll() {
-    items.forEach((it) => URL.revokeObjectURL(it.previewUrl));
-    setItems([]);
-  }
-
   return (
     <main className="mx-auto max-w-xl px-4 py-6 pb-36">
       <header className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">CPAP Analyzer</h1>
-          <p className="text-sm text-slate-400">วิเคราะห์หน้าจอ Aeonmed AS100A ได้หลายรูปพร้อมกัน</p>
+          <p className="text-sm text-slate-400">OCR บนเครื่อง → วิเคราะห์ด้วย Gemini (ส่งแค่ข้อความ)</p>
         </div>
         {items.length > 0 && (
-          <button onClick={clearAll} className="text-xs text-slate-400 underline">ล้างทั้งหมด</button>
+          <button onClick={() => { items.forEach((it) => URL.revokeObjectURL(it.previewUrl)); setItems([]); }}
+            className="text-xs text-slate-400 underline">ล้างทั้งหมด</button>
         )}
       </header>
 
       {items.length === 0 && (
         <div className="rounded-2xl border border-dashed border-slate-700 p-8 text-center text-sm text-slate-400">
-          กดปุ่มด้านล่างเพื่อถ่ายรูปหรือเลือกหลายรูปจากคลังภาพ
+          กดปุ่มด้านล่างเพื่อถ่ายรูปหรือเลือกรูปจากคลังภาพ
         </div>
       )}
 
@@ -119,16 +120,12 @@ export default function Home() {
         <div className="mx-auto flex max-w-xl gap-2">
           <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onFiles} />
           <input ref={browseRef} type="file" accept="image/*" multiple className="hidden" onChange={onFiles} />
-          <button
-            onClick={() => cameraRef.current?.click()}
-            className="flex-1 rounded-xl bg-sky-500 px-4 py-3 font-semibold text-white shadow-lg active:scale-[0.99]"
-          >
+          <button onClick={() => cameraRef.current?.click()}
+            className="flex-1 rounded-xl bg-sky-500 px-4 py-3 font-semibold text-white shadow-lg active:scale-[0.99]">
             📷 ถ่ายรูป
           </button>
-          <button
-            onClick={() => browseRef.current?.click()}
-            className="flex-1 rounded-xl border border-slate-600 bg-slate-800 px-4 py-3 font-semibold text-slate-100 active:scale-[0.99]"
-          >
+          <button onClick={() => browseRef.current?.click()}
+            className="flex-1 rounded-xl border border-slate-600 bg-slate-800 px-4 py-3 font-semibold text-slate-100 active:scale-[0.99]">
             🖼️ เลือกหลายรูป
           </button>
         </div>
@@ -137,7 +134,19 @@ export default function Home() {
   );
 }
 
+// ─── Item Card ────────────────────────────────────────────────
+
+const STATUS_LABEL: Record<ItemStatus, string> = {
+  compressing: 'กำลังลดขนาดรูป…',
+  ocr: 'กำลังอ่านตัวเลข (OCR)…',
+  analyzing: 'กำลังวิเคราะห์…',
+  done: '',
+  error: '',
+};
+
 function ItemCard({ item, onRemove }: { item: Item; onRemove: () => void }) {
+  const [showOcr, setShowOcr] = useState(false);
+
   const overallColor: Record<string, string> = {
     good: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
     fair: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
@@ -149,33 +158,48 @@ function ItemCard({ item, onRemove }: { item: Item; onRemove: () => void }) {
     <article className="overflow-hidden rounded-2xl border border-slate-700 bg-slate-900/60">
       <div className="relative">
         <img src={item.previewUrl} alt={item.name} className="max-h-64 w-full object-contain bg-black" />
-        <button
-          onClick={onRemove}
-          className="absolute right-2 top-2 rounded-full bg-black/60 px-2 py-1 text-xs text-white"
-        >
-          ✕
-        </button>
+        <button onClick={onRemove}
+          className="absolute right-2 top-2 rounded-full bg-black/60 px-2 py-1 text-xs text-white">✕</button>
         <div className="absolute left-2 top-2 rounded-full bg-black/60 px-2 py-1 text-[10px] text-slate-200">
-          {item.origKB}KB → {item.sentKB || '…'}KB
+          {item.origKB} KB
         </div>
       </div>
 
-      <div className="p-4">
-        {(item.status === 'compressing' || item.status === 'analyzing') && (
+      <div className="p-4 space-y-3">
+        {/* Loading states */}
+        {(item.status === 'compressing' || item.status === 'ocr' || item.status === 'analyzing') && (
           <div className="flex items-center gap-2 text-sm text-slate-300">
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-600 border-t-sky-400" />
-            {item.status === 'compressing' ? 'กำลังลดขนาดรูป…' : 'กำลังวิเคราะห์…'}
+            <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-slate-600 border-t-sky-400" />
+            {STATUS_LABEL[item.status]}
           </div>
         )}
 
+        {/* OCR text (collapsible) */}
+        {item.ocrText && (
+          <div className="rounded-xl border border-slate-700">
+            <button onClick={() => setShowOcr((v) => !v)}
+              className="flex w-full items-center justify-between px-3 py-2 text-xs text-slate-400">
+              <span>ข้อความที่ OCR อ่านได้</span>
+              <span>{showOcr ? '▲' : '▼'}</span>
+            </button>
+            {showOcr && (
+              <pre className="border-t border-slate-700 px-3 py-2 text-[11px] text-slate-300 whitespace-pre-wrap break-all">
+                {item.ocrText}
+              </pre>
+            )}
+          </div>
+        )}
+
+        {/* Error */}
         {item.status === 'error' && (
           <div className="rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-sm text-rose-200">
             {item.error}
           </div>
         )}
 
+        {/* Result */}
         {item.status === 'done' && item.result && (
-          <div className="space-y-3">
+          <>
             <div className={`rounded-xl border p-3 ${overallColor[item.result.overall] ?? overallColor.unknown}`}>
               <div className="text-[10px] uppercase tracking-wide opacity-70">สรุปผล</div>
               <div className="mt-0.5 text-sm font-medium">{item.result.summary}</div>
@@ -206,14 +230,20 @@ function ItemCard({ item, onRemove }: { item: Item; onRemove: () => void }) {
                 </ul>
               </div>
             )}
-          </div>
+
+            <p className="text-[10px] text-slate-500">
+              * ไม่ใช่คำวินิจฉัยทางการแพทย์ ปรึกษาแพทย์ก่อนปรับการใช้งาน
+            </p>
+          </>
         )}
       </div>
     </article>
   );
 }
 
-async function compressImage(file: File, maxDim: number, quality: number): Promise<{ base64: string; mediaType: string }> {
+// ─── Helpers ─────────────────────────────────────────────────
+
+async function compressImage(file: File, maxDim: number, quality: number): Promise<{ dataUrl: string }> {
   const bitmap = await createImageBitmap(file);
   const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
   const w = Math.round(bitmap.width * scale);
@@ -224,19 +254,22 @@ async function compressImage(file: File, maxDim: number, quality: number): Promi
   const ctx = canvas.getContext('2d')!;
   ctx.drawImage(bitmap, 0, 0, w, h);
   bitmap.close?.();
-  const blob: Blob = await new Promise((res) => canvas.toBlob((b) => res(b!), 'image/jpeg', quality)!);
-  const base64 = await blobToBase64(blob);
-  return { base64, mediaType: 'image/jpeg' };
+  const dataUrl = canvas.toDataURL('image/jpeg', quality);
+  return { dataUrl };
 }
 
-function blobToBase64(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      resolve(result.split(',')[1] ?? '');
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
+async function runOcr(dataUrl: string): Promise<string> {
+  const { createWorker } = await import('tesseract.js');
+  // eng for numbers/labels; also load tha in case of Thai labels
+  const worker = await createWorker(['eng', 'tha'], 1, {
+    workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
+    langPath: 'https://tessdata.projectnaptha.com/4.0.0',
+    corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core-simd-lstm.wasm.js',
   });
+  try {
+    const { data } = await worker.recognize(dataUrl);
+    return data.text;
+  } finally {
+    await worker.terminate();
+  }
 }
