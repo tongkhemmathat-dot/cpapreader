@@ -22,16 +22,16 @@ type FormData = {
   hi: string;
 };
 
-const FIELDS: { key: keyof FormData; label: string; unit: string; placeholder: string }[] = [
-  { key: 'usage',    label: 'ระยะเวลาใช้งาน',      unit: 'ชม.',      placeholder: 'เช่น 7.5' },
-  { key: 'pressure', label: 'ความดันเฉลี่ย',         unit: 'cmH₂O',   placeholder: 'เช่น 9.2' },
-  { key: 'p90',      label: 'P90',                   unit: 'cmH₂O',   placeholder: 'เช่น 11.4' },
-  { key: 'ahi',      label: 'AHI',                   unit: 'ครั้ง/ชม.', placeholder: 'เช่น 2.1' },
-  { key: 'snore',    label: 'ดัชนีการกรน',           unit: 'ครั้ง/ชม.', placeholder: 'เช่น 5.0' },
-  { key: 'leak90',   label: 'LEAK90',                unit: 'L/min',   placeholder: 'เช่น 18' },
-  { key: 'cai',      label: 'CAI',                   unit: 'ครั้ง/ชม.', placeholder: 'เช่น 0.3' },
-  { key: 'apnea',    label: 'ดัชนีการหยุดหายใจ',    unit: 'ครั้ง/ชม.', placeholder: 'เช่น 1.2' },
-  { key: 'hi',       label: 'HI',                    unit: 'ครั้ง/ชม.', placeholder: 'เช่น 0.9' },
+const FIELDS: { key: keyof FormData; label: string; unit: string; placeholder: string; desc: string }[] = [
+  { key: 'usage',    label: 'ระยะเวลาใช้งาน',    unit: 'ชม.',       placeholder: 'เช่น 7.5',  desc: 'จำนวนชั่วโมงที่สวมหน้ากากในคืนนั้น ควร ≥ 4 ชม.' },
+  { key: 'pressure', label: 'ความดันเฉลี่ย',      unit: 'hPa',       placeholder: 'เช่น 9.2',  desc: 'ความดันลมเฉลี่ยตลอดคืน (1 hPa ≈ 1 cmH₂O)' },
+  { key: 'p90',      label: 'P90',               unit: 'hPa',       placeholder: 'เช่น 11.4', desc: 'ความดันที่เครื่องใช้จริง 90% ของเวลา บ่งบอกความต้องการสูงสุดของคืนนั้น' },
+  { key: 'ahi',      label: 'AHI',               unit: 'ครั้ง/ชม.', placeholder: 'เช่น 2.1',  desc: 'ดัชนีหยุดหายใจรวม: <5 = ปกติ, 5-14 = เล็กน้อย, 15-29 = ปานกลาง, ≥30 = รุนแรง' },
+  { key: 'snore',    label: 'ดัชนีการกรน',       unit: 'ครั้ง/ชม.', placeholder: 'เช่น 5.0',  desc: 'จำนวนครั้งที่ตรวจพบเสียงกรนต่อชั่วโมง ค่าสูงอาจต้องปรับความดันหรือหน้ากาก' },
+  { key: 'leak90',   label: 'LEAK90',            unit: 'L/min',     placeholder: 'เช่น 18',   desc: 'การรั่วของหน้ากากที่ระดับ 90th percentile ควร < 24 L/min' },
+  { key: 'cai',      label: 'CAI',               unit: 'ครั้ง/ชม.', placeholder: 'เช่น 0.3',  desc: 'ดัชนีหยุดหายใจแบบกลาง (สมองไม่ส่งสัญญาณ) ควร < 1 ครั้ง/ชม.' },
+  { key: 'apnea',    label: 'ดัชนีการหยุดหายใจ', unit: 'ครั้ง/ชม.', placeholder: 'เช่น 1.2',  desc: 'จำนวนครั้งที่หยุดหายใจสนิท (Apnea Index) รวมทั้ง obstructive และ central' },
+  { key: 'hi',       label: 'HI',                unit: 'ครั้ง/ชม.', placeholder: 'เช่น 0.9',  desc: 'ดัชนีหายใจตื้น (Hypopnea Index) การหายใจลดลง ≥ 30% นานกว่า 10 วินาที' },
 ];
 
 const EMPTY: FormData = { usage: '', pressure: '', p90: '', ahi: '', snore: '', leak90: '', cai: '', apnea: '', hi: '' };
@@ -87,12 +87,13 @@ export default function Home() {
       </header>
 
       <form onSubmit={handleSubmit} className="space-y-3">
-        <div className="grid grid-cols-2 gap-3">
-          {FIELDS.map(({ key, label, unit, placeholder }) => (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {FIELDS.map(({ key, label, unit, placeholder, desc }) => (
             <div key={key} className="flex flex-col gap-1">
-              <label className="text-xs text-slate-400">
+              <label className="text-xs font-medium text-slate-300">
                 {label} <span className="text-slate-500">({unit})</span>
               </label>
+              <p className="text-[11px] leading-snug text-slate-500">{desc}</p>
               <input
                 type="number"
                 inputMode="decimal"

@@ -23,7 +23,7 @@ const SYSTEM_PROMPT = `คุณเป็นผู้ช่วยวิเคร
   "recommendations": ["คำแนะนำเฉพาะเจาะจงจากค่าที่ผิดปกติ ถ้าทุกค่าปกติให้ชมและบอกให้รักษาพฤติกรรมเดิม"]
 }`;
 
-const FALLBACK_MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-8b'];
+const FALLBACK_MODELS = ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash'];
 
 type FormData = {
   usage?: string; pressure?: string; p90?: string; ahi?: string;
@@ -33,8 +33,8 @@ type FormData = {
 function buildPrompt(f: FormData): string {
   const lines = [
     f.usage    && `ระยะเวลาใช้งาน: ${f.usage} ชม.`,
-    f.pressure && `ความดันเฉลี่ย: ${f.pressure} cmH₂O`,
-    f.p90      && `P90: ${f.p90} cmH₂O`,
+    f.pressure && `ความดันเฉลี่ย: ${f.pressure} hPa`,
+    f.p90      && `P90: ${f.p90} hPa`,
     f.ahi      && `AHI: ${f.ahi} ครั้ง/ชม.`,
     f.snore    && `ดัชนีการกรน: ${f.snore} ครั้ง/ชม.`,
     f.leak90   && `LEAK90: ${f.leak90} L/min`,
