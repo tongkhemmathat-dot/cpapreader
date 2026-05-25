@@ -23,7 +23,7 @@ const SYSTEM_PROMPT = `คุณเป็นผู้ช่วยวิเคร
   "recommendations": ["คำแนะนำเฉพาะเจาะจงจากค่าที่ผิดปกติ ถ้าทุกค่าปกติให้ชมและบอกให้รักษาพฤติกรรมเดิม"]
 }`;
 
-const FALLBACK_MODELS = ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash'];
+const FALLBACK_MODELS = ['gemini-2.0-flash', 'gemini-2.0-flash-lite'];
 
 type FormData = {
   usage?: string; pressure?: string; p90?: string; ahi?: string;
@@ -64,19 +64,27 @@ export async function POST(req: NextRequest) {
 
     for (const modelName of FALLBACK_MODELS) {
       const model = genAI.getGenerativeModel({ model: modelName, systemInstruction: SYSTEM_PROMPT });
-      for (let attempt = 0; attempt < 2; attempt++) {
+      let success = false;
+      for (let attempt = 0; attempt < 3; attempt++) {
         try {
           const result = await model.generateContent(prompt);
           text = result.response.text().trim();
+          success = true;
           break;
         } catch (e: any) {
           lastError = e;
-          const is429 = e?.status === 429 || e?.message?.includes('429') || e?.message?.includes('quota');
-          if (is429 && attempt === 0) { await new Promise((r) => setTimeout(r, 4000)); continue; }
+          const msg = e?.message ?? '';
+          const is429 = e?.status === 429 || msg.includes('429') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED');
+          const is404 = e?.status === 404 || msg.includes('404') || msg.includes('not found');
+          if (is404) break; // model ไม่มี ไม่ต้อง retry
+          if (is429) {
+            await new Promise((r) => setTimeout(r, (attempt + 1) * 5000));
+            continue;
+          }
           break;
         }
       }
-      if (text) break;
+      if (success) break;
     }
 
     if (!text) {
