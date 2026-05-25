@@ -69,8 +69,14 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ formData: form }),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'การวิเคราะห์ล้มเหลว');
+      let json: any;
+      try {
+        json = await res.json();
+      } catch {
+        const raw = await res.text().catch(() => '');
+        throw new Error(`Server error ${res.status}: ${raw.slice(0, 120) || 'ไม่ทราบสาเหตุ'}`);
+      }
+      if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
       setResult(json);
     } catch (err: any) {
       setError(err.message || 'เกิดข้อผิดพลาด');

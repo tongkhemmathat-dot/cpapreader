@@ -63,7 +63,11 @@ export async function POST(req: NextRequest) {
     let lastError: any;
 
     for (const modelName of FALLBACK_MODELS) {
-      const model = genAI.getGenerativeModel({ model: modelName, systemInstruction: SYSTEM_PROMPT });
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        systemInstruction: SYSTEM_PROMPT,
+        generationConfig: { responseMimeType: 'application/json' },
+      });
       let success = false;
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
@@ -95,10 +99,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const cleaned = text.replace(/^```(?:json)?\s*|\s*```$/g, '').trim();
     let parsed;
-    try { parsed = JSON.parse(cleaned); }
-    catch { return NextResponse.json({ error: 'โมเดลตอบกลับไม่ใช่ JSON', raw: text }, { status: 502 }); }
+    try { parsed = JSON.parse(text); }
+    catch { return NextResponse.json({ error: 'โมเดลตอบกลับไม่ใช่ JSON', raw: text.slice(0, 300) }, { status: 502 }); }
 
     return NextResponse.json(parsed);
   } catch (err: any) {
