@@ -19,7 +19,7 @@ const FIELDS: { key: keyof FormData; label: string; unit: string; placeholder: s
   { key: 'pressure', label: 'ความดันเฉลี่ย', unit: 'hPa',      placeholder: '9.2',  desc: 'ความดันลมเฉลี่ยตลอดคืน (1 hPa ≈ 1 cmH₂O)' },
   { key: 'p90',      label: 'P90',         unit: 'hPa',       placeholder: '11.4', desc: 'ความดันที่เครื่องใช้จริง 90% ของเวลา' },
   { key: 'cai',      label: 'CAI',         unit: '/ชม.',      placeholder: '0.3',  desc: 'การหยุดหายใจจากสมอง (central) ควร < 1' },
-  { key: 'apnea',    label: 'Apnea Index', unit: '/ชม.',      placeholder: '1.2',  desc: 'จำนวนครั้งที่หยุดหายใจสนิท' },
+  { key: 'apnea',    label: 'จำนวนครั้งหยุดหายใจ', unit: '/ชม.',      placeholder: '1.2',  desc: 'จำนวนครั้งที่หยุดหายใจสนิท' },
   { key: 'hi',       label: 'HI',          unit: '/ชม.',      placeholder: '0.9',  desc: 'ดัชนีหายใจตื้น ≥10 วินาที' },
   { key: 'snore',    label: 'การกรน',      unit: '/ชม.',      placeholder: '5.0',  desc: 'จำนวนครั้งที่ตรวจพบเสียงกรน' },
   { key: 'leak90',   label: 'LEAK90',      unit: 'L/min',     placeholder: '18',   desc: 'การรั่วของหน้ากากที่ 90th percentile ควร < 24' },
@@ -44,9 +44,9 @@ export default function Home() {
 
   if (!pinHash) return <PinGate onUnlock={handleUnlock} />;
   if (syncing) return (
-    <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-4 bg-black">
-      <div className="h-10 w-10 animate-spin rounded-full border-[3px] border-white/10 border-t-sky-400" />
-      <p className="text-sm font-medium text-slate-400 tracking-wide">กำลังซิงค์ข้อมูล…</p>
+    <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-5 bg-black">
+      <div className="h-12 w-12 animate-spin rounded-full border-[4px] border-white/10 border-t-sky-500" />
+      <p className="text-[15px] font-medium text-slate-400 tracking-wide">กำลังซิงค์ข้อมูล…</p>
     </div>
   );
   return <App pinHash={pinHash} />;
@@ -109,12 +109,14 @@ function App({ pinHash }: { pinHash: string }) {
   return (
     <div className="safe-top flex min-h-[100dvh] flex-col bg-black selection:bg-sky-500/30">
       {/* scrollable content */}
-      <div className="flex-1 overflow-y-auto pb-28">
+      <div className="flex-1 overflow-y-auto pb-32">
         {/* header */}
-        <div className="px-6 pt-6 pb-4">
-          <h1 className="text-[28px] font-extrabold tracking-tight text-white">CPAP Analyzer</h1>
-          <p className="mt-1 text-sm font-medium text-slate-400 capitalize-first">
-            {new Date().toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', calendar: 'gregory' })}
+        <div className="px-6 pt-8 pb-6">
+          <h1 className="text-[36px] font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-sky-400 via-indigo-400 to-purple-500">
+            SleepFlow
+          </h1>
+          <p className="mt-1.5 text-[14px] font-medium text-slate-400 capitalize-first">
+            บันทึกผล CPAP • {new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}
           </p>
         </div>
 
@@ -132,7 +134,7 @@ function App({ pinHash }: { pinHash: string }) {
       </div>
 
       {/* bottom tab bar */}
-      <nav className={`safe-bottom fixed inset-x-0 bottom-0 border-t border-white/10 bg-black/50 backdrop-blur-2xl supports-[backdrop-filter]:bg-black/30 transition-transform duration-300 z-50 ${isKeyboardOpen ? 'translate-y-full' : 'translate-y-0'}`}>
+      <nav className={`safe-bottom fixed inset-x-0 bottom-0 border-t border-white/10 bg-black/70 backdrop-blur-2xl supports-[backdrop-filter]:bg-black/40 transition-transform duration-300 z-50 ${isKeyboardOpen ? 'translate-y-full' : 'translate-y-0'}`}>
         <div className="mx-auto flex max-w-xl px-2">
           <TabBtn active={tab === 'form'} onClick={() => setTab('form')} icon="✏️" label="บันทึก" />
           <TabBtn active={tab === 'history'} onClick={() => setTab('history')} icon="📊" label="ประวัติ" badge={records.length} />
@@ -146,12 +148,12 @@ function App({ pinHash }: { pinHash: string }) {
 function TabBtn({ active, onClick, icon, label, badge }: { active: boolean; onClick: () => void; icon: string; label: string; badge?: number }) {
   return (
     <button onClick={onClick}
-      className={`relative flex flex-1 flex-col items-center justify-center gap-1 py-3 transition-colors ${active ? 'text-sky-400' : 'text-slate-500'}`}>
-      <span className={`text-[22px] leading-none transition-transform duration-200 ${active ? 'scale-110 drop-shadow-[0_0_12px_rgba(56,189,248,0.4)]' : 'scale-100 grayscale-[0.5] opacity-80'}`}>{icon}</span>
-      <span className="text-[10px] font-semibold tracking-wide">{label}</span>
+      className={`relative flex flex-1 flex-col items-center justify-center gap-1.5 py-3.5 transition-colors ${active ? 'text-sky-400' : 'text-slate-500'}`}>
+      <span className={`text-[24px] leading-none transition-transform duration-200 ${active ? 'scale-110 drop-shadow-[0_0_12px_rgba(56,189,248,0.4)]' : 'scale-100 grayscale-[0.6] opacity-70'}`}>{icon}</span>
+      <span className="text-[11px] font-semibold tracking-wide">{label}</span>
       
       {!!badge && badge > 0 && (
-        <span className="absolute top-2 right-[25%] flex h-4 min-w-[16px] items-center justify-center rounded-full bg-sky-500 px-1 text-[9px] font-bold text-white ring-2 ring-black">
+        <span className="absolute top-2.5 right-[28%] flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-sky-500 px-1.5 text-[10px] font-bold text-white ring-2 ring-black">
           {badge}
         </span>
       )}
@@ -172,46 +174,48 @@ function FormTab({ form, error, result, saved, onChange, onClear, onSubmit, onSa
 
   return (
     <>
-      <form onSubmit={onSubmit} className="space-y-3">
-        <div className="grid grid-cols-2 gap-3">
+      <form onSubmit={onSubmit}>
+        <div className="grid grid-cols-2 gap-4">
           {FIELDS.map(({ key, label, unit, placeholder, desc }) => (
-            <label key={key} className="relative block rounded-[20px] border border-white/10 bg-white/[0.04] p-3.5 transition-colors cursor-text focus-within:border-sky-500/50 focus-within:bg-sky-500/[0.03]">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-semibold tracking-wide text-slate-400">{label}</span>
-                <button type="button" onClick={(e) => { e.preventDefault(); setOpenDesc(openDesc === key ? null : key); }}
-                  className="p-3 -mr-3 -mt-3 text-[11px] opacity-40 hover:opacity-100 active:opacity-100 transition-opacity">ⓘ</button>
+            <div key={key} className="relative flex flex-col rounded-[24px] border border-white/10 bg-white/[0.04] p-4 transition-colors focus-within:border-sky-500/50 focus-within:bg-sky-500/[0.03] hover:bg-white/[0.06]">
+              <div className="flex items-center justify-between mb-2">
+                <label htmlFor={key} className="text-[14px] font-semibold tracking-wide text-slate-400">{label}</label>
+                <button type="button" onClick={() => setOpenDesc(openDesc === key ? null : key)}
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-[14px] font-bold text-slate-400 active:bg-white/20 active:scale-95 transition-all">
+                  ?
+                </button>
               </div>
               
-              <div className={`overflow-hidden transition-all duration-300 ease-in-out ${openDesc === key ? 'max-h-24 opacity-100 mb-2' : 'max-h-0 opacity-0 mb-0'}`}>
-                <p className="text-[11px] leading-snug text-slate-400 border-b border-white/5 pb-2">{desc}</p>
+              <div className={`overflow-hidden transition-all duration-300 ease-in-out ${openDesc === key ? 'max-h-24 opacity-100 mb-3' : 'max-h-0 opacity-0 mb-0'}`}>
+                <p className="text-[12px] leading-relaxed text-sky-200/90 bg-sky-500/10 rounded-[16px] p-3">{desc}</p>
               </div>
               
-              <div className="flex items-baseline gap-1.5 mt-1">
+              <div className="flex items-baseline gap-1.5 mt-auto pt-1">
                 <input
-                  type="number" inputMode="decimal" step="any" placeholder={placeholder}
+                  id={key} type="number" inputMode="decimal" step="any" placeholder={placeholder}
                   value={form[key]} onChange={(e) => onChange(key, e.target.value)}
-                  className="w-full bg-transparent text-2xl font-bold text-white placeholder-white/20 focus:outline-none"
+                  className="w-full bg-transparent text-[30px] font-bold text-white placeholder-white/10 focus:outline-none"
                 />
-                <span className="shrink-0 text-xs font-medium text-slate-500">{unit}</span>
+                <span className="shrink-0 text-[14px] font-medium text-slate-500">{unit}</span>
               </div>
-            </label>
+            </div>
           ))}
         </div>
 
         {error && (
-          <div className="rounded-[16px] border border-rose-500/30 bg-rose-500/10 px-4 py-3.5 text-sm font-medium text-rose-300 backdrop-blur-sm">
+          <div className="mt-5 rounded-[20px] border border-rose-500/30 bg-rose-500/10 px-5 py-4 text-[14.5px] font-medium text-rose-300 backdrop-blur-sm">
             {error}
           </div>
         )}
 
-        <div className="flex gap-3 pt-2">
+        <div className="mt-8 flex flex-col gap-3">
           <button type="submit"
-            className="flex-1 rounded-[20px] bg-gradient-to-b from-sky-400 to-sky-600 py-4 text-base font-bold text-white shadow-[0_4px_20px_rgba(56,189,248,0.25)] ring-1 ring-white/20 active:scale-[0.98] transition-transform">
-            วิเคราะห์ผล
+            className="w-full rounded-[24px] bg-gradient-to-r from-sky-500 to-indigo-500 py-4.5 text-[18px] font-bold text-white shadow-[0_8px_24px_rgba(56,189,248,0.25)] active:scale-[0.98] transition-transform">
+            วิเคราะห์ผลลัพธ์
           </button>
           <button type="button" onClick={onClear}
-            className="rounded-[20px] bg-white/[0.05] border border-white/10 px-6 py-4 text-sm font-semibold text-slate-300 active:bg-white/[0.1] transition-colors">
-            ล้าง
+            className="w-full rounded-[24px] py-4 text-[15px] font-semibold text-slate-500 active:text-slate-300 active:bg-white/5 transition-colors">
+            ล้างข้อมูล
           </button>
         </div>
       </form>
@@ -252,13 +256,13 @@ function ResultCard({ result, saved, onSave }: { result: Analysis; saved: boolea
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-xl">{icon}</span>
-              <h2 className={`text-lg font-bold tracking-wide ${txt}`}>{OVERALL_LABEL[result.overall]}</h2>
+              <span className="text-[22px]">{icon}</span>
+              <h2 className={`text-[19px] font-bold tracking-wide ${txt}`}>{OVERALL_LABEL[result.overall]}</h2>
             </div>
-            <p className="text-[13px] text-slate-300 leading-relaxed font-medium">{result.summary}</p>
+            <p className="text-[14px] text-slate-300 leading-relaxed font-medium">{result.summary}</p>
           </div>
           <button onClick={onSave} disabled={saved}
-            className={`shrink-0 rounded-[14px] px-4 py-2.5 text-sm font-bold transition-all active:scale-95 ${
+            className={`shrink-0 rounded-[16px] px-5 py-3 text-[14px] font-bold transition-all active:scale-95 ${
               saved ? 'bg-white/5 text-slate-500 ring-1 ring-white/5' : 'bg-white/10 text-white ring-1 ring-white/20 active:bg-white/20 shadow-lg'}`}>
             {saved ? 'บันทึกแล้ว' : 'บันทึก'}
           </button>
@@ -267,9 +271,9 @@ function ResultCard({ result, saved, onSave }: { result: Analysis; saved: boolea
 
       {/* metrics grid */}
       {result.metrics?.length > 0 && (
-        <div className="space-y-2 pt-2">
-          <h3 className="px-2 text-[11px] font-bold uppercase tracking-widest text-slate-500">ผลวิเคราะห์แต่ละค่า</h3>
-          <div className="grid grid-cols-1 gap-2">
+        <div className="space-y-2.5 pt-3">
+          <h3 className="px-2 text-[12px] font-bold uppercase tracking-widest text-slate-500">ผลวิเคราะห์แต่ละค่า</h3>
+          <div className="grid grid-cols-1 gap-2.5">
             {result.metrics.map((m, i) => <MetricRow key={i} metric={m} />)}
           </div>
         </div>
@@ -277,21 +281,21 @@ function ResultCard({ result, saved, onSave }: { result: Analysis; saved: boolea
 
       {/* recommendations */}
       {result.recommendations?.length > 0 && (
-        <div className="space-y-2 pt-2">
-          <h3 className="px-2 text-[11px] font-bold uppercase tracking-widest text-slate-500">คำแนะนำ</h3>
-          <div className="space-y-2">
+        <div className="space-y-2.5 pt-3">
+          <h3 className="px-2 text-[12px] font-bold uppercase tracking-widest text-slate-500">คำแนะนำ</h3>
+          <div className="space-y-2.5">
             {result.recommendations.map((r, i) => (
-              <div key={i} className="flex gap-3.5 rounded-[20px] border border-white/5 bg-white/[0.03] px-4 py-3.5">
-                <span className="mt-0.5 text-base opacity-90">💡</span>
-                <p className="text-[13.5px] font-medium text-slate-200 leading-relaxed">{r}</p>
+              <div key={i} className="flex gap-4 rounded-[20px] border border-white/5 bg-white/[0.03] px-4.5 py-4">
+                <span className="mt-0.5 text-[18px] opacity-90">💡</span>
+                <p className="text-[14.5px] font-medium text-slate-200 leading-relaxed">{r}</p>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      <div className="pt-2 px-2">
-        <p className="text-[10px] font-medium text-slate-600">* ไม่ใช่อุปกรณ์ทางการแพทย์ โปรดพิจารณาร่วมกับคำแนะนำของแพทย์</p>
+      <div className="pt-3 px-2">
+        <p className="text-[11px] font-medium text-slate-600">* ไม่ใช่อุปกรณ์ทางการแพทย์ โปรดพิจารณาร่วมกับคำแนะนำของแพทย์</p>
       </div>
     </section>
   );
@@ -309,18 +313,18 @@ function MetricRow({ metric: m }: { metric: Metric }) {
 
   return (
     <button onClick={() => setOpen((o) => !o)} 
-      className={`w-full text-left rounded-[20px] border ${conf.border} bg-white/[0.02] p-4 active:bg-white/[0.04] transition-colors`}>
+      className={`w-full text-left rounded-[20px] border ${conf.border} bg-white/[0.02] p-4.5 active:bg-white/[0.04] transition-colors`}>
       <div className="flex items-center justify-between gap-3">
-        <span className="text-[13px] font-semibold text-slate-300">{m.label}</span>
-        <div className={`flex items-center gap-2 rounded-[10px] ${conf.bg} px-2.5 py-1`}>
-          <span className={`text-[13px] font-bold ${conf.color}`}>{m.value}</span>
+        <span className="text-[14px] font-semibold text-slate-300">{m.label}</span>
+        <div className={`flex items-center gap-2 rounded-[12px] ${conf.bg} px-3 py-1.5`}>
+          <span className={`text-[14px] font-bold ${conf.color}`}>{m.value}</span>
         </div>
       </div>
       
-      <div className={`overflow-hidden transition-all duration-300 ease-in-out ${open ? 'max-h-32 mt-3 opacity-100' : 'max-h-0 opacity-0'}`}>
-        <p className="text-[12px] font-medium text-slate-400 leading-relaxed border-t border-white/5 pt-3">{m.note}</p>
+      <div className={`overflow-hidden transition-all duration-300 ease-in-out ${open ? 'max-h-32 mt-3.5 opacity-100' : 'max-h-0 opacity-0'}`}>
+        <p className="text-[13px] font-medium text-slate-400 leading-relaxed border-t border-white/5 pt-3.5">{m.note}</p>
       </div>
-      {!open && <p className="mt-1.5 text-[11px] font-medium text-slate-500 truncate">{m.note}</p>}
+      {!open && <p className="mt-2 text-[12px] font-medium text-slate-500 truncate">{m.note}</p>}
     </button>
   );
 }
@@ -369,16 +373,16 @@ function HistoryTab({ records, pinHash, onLoad, onDelete }: {
   return (
     <div className="space-y-4 animate-in fade-in duration-300">
       {/* sync row */}
-      <div className="flex items-center justify-between rounded-[20px] border border-white/10 bg-white/[0.04] px-4 py-3">
-        <div className={`flex items-center gap-2.5 text-[13px] font-medium ${synced ? 'text-emerald-400' : 'text-slate-500'}`}>
-          <span className={`h-2 w-2 rounded-full ${synced ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]' : 'bg-slate-600'}`} />
+      <div className="flex items-center justify-between rounded-[20px] border border-white/10 bg-white/[0.04] px-4.5 py-4">
+        <div className={`flex items-center gap-3 text-[14px] font-medium ${synced ? 'text-emerald-400' : 'text-slate-500'}`}>
+          <span className={`h-2.5 w-2.5 rounded-full ${synced ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]' : 'bg-slate-600'}`} />
           {synced ? (syncStatus !== 'idle' ? syncMsg : 'Cloud Sync เปิดใช้งาน') : 'บันทึกในเครื่องเท่านั้น'}
         </div>
         {synced && (
           <button onClick={handleSync} disabled={syncStatus === 'syncing'}
-            className="flex items-center gap-1.5 rounded-[12px] bg-white/10 px-3 py-1.5 text-xs font-bold text-white active:scale-95 disabled:opacity-50 transition-all">
+            className="flex items-center gap-1.5 rounded-[14px] bg-white/10 px-3.5 py-2 text-[13px] font-bold text-white active:scale-95 disabled:opacity-50 transition-all">
             {syncStatus === 'syncing'
-              ? <><span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/20 border-t-white" /> ซิงค์...</>
+              ? <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" /> ซิงค์...</>
               : '☁️ ซิงค์'}
           </button>
         )}
@@ -386,23 +390,23 @@ function HistoryTab({ records, pinHash, onLoad, onDelete }: {
 
       {/* record list */}
       {records.length === 0 ? (
-        <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] py-14 text-center">
-          <p className="text-slate-400 text-sm font-medium">ยังไม่มีข้อมูลที่บันทึก</p>
-          <p className="text-slate-500 text-xs mt-1.5">กรอกผลในหน้าแรกแล้วกดบันทึก</p>
+        <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] py-16 text-center">
+          <p className="text-slate-400 text-[15px] font-medium">ยังไม่มีข้อมูลที่บันทึก</p>
+          <p className="text-slate-500 text-[13px] mt-2">กรอกผลในหน้าแรกแล้วกดบันทึก</p>
         </div>
       ) : (
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           {records.map((rec) => (
-            <div key={rec.id} className="rounded-[20px] border border-white/10 bg-white/[0.04] overflow-hidden">
-              <button onClick={() => onLoad(rec)} className="flex w-full items-center gap-4 px-4 py-4 active:bg-white/[0.06] transition-colors">
-                <span className="text-[22px] drop-shadow-md">{OVERALL_ICON[rec.result.overall] ?? '⚪'}</span>
+            <div key={rec.id} className="rounded-[24px] border border-white/10 bg-white/[0.04] overflow-hidden">
+              <button onClick={() => onLoad(rec)} className="flex w-full items-center gap-4 px-4.5 py-4.5 active:bg-white/[0.06] transition-colors">
+                <span className="text-[26px] drop-shadow-md">{OVERALL_ICON[rec.result.overall] ?? '⚪'}</span>
                 <div className="flex-1 text-left">
-                  <div className="text-[14px] font-bold text-white tracking-wide">{fmtDate(rec.date)}</div>
-                  <div className="text-[12px] font-medium text-slate-400 mt-0.5 line-clamp-1">{rec.result.summary}</div>
+                  <div className="text-[15.5px] font-bold text-white tracking-wide">{fmtDate(rec.date)}</div>
+                  <div className="text-[13px] font-medium text-slate-400 mt-1 line-clamp-1">{rec.result.summary}</div>
                 </div>
                 <div className="text-right shrink-0">
-                  {rec.form.ahi && <div className="text-[14px] font-bold text-sky-400">AHI {rec.form.ahi}</div>}
-                  {rec.form.usage && <div className="text-[11px] font-medium text-slate-500 mt-0.5">{rec.form.usage} ชม.</div>}
+                  {rec.form.ahi && <div className="text-[15.5px] font-bold text-sky-400">AHI {rec.form.ahi}</div>}
+                  {rec.form.usage && <div className="text-[12px] font-medium text-slate-500 mt-1">{rec.form.usage} ชม.</div>}
                 </div>
               </button>
               
@@ -410,13 +414,13 @@ function HistoryTab({ records, pinHash, onLoad, onDelete }: {
               {confirmDel === rec.date ? (
                 <div className="flex border-t border-white/10 bg-rose-500/10">
                   <button onClick={() => setConfirmDel(null)}
-                    className="flex-1 py-3 text-[13px] font-semibold text-slate-400 active:bg-white/5">ยกเลิก</button>
+                    className="flex-1 py-3.5 text-[14px] font-semibold text-slate-400 active:bg-white/5">ยกเลิก</button>
                   <button onClick={() => { onDelete(rec.date); setConfirmDel(null); }}
-                    className="flex-1 py-3 text-[13px] font-bold text-rose-400 active:bg-rose-500/20 border-l border-white/10">ยืนยันลบ</button>
+                    className="flex-1 py-3.5 text-[14px] font-bold text-rose-400 active:bg-rose-500/20 border-l border-white/10">ยืนยันลบ</button>
                 </div>
               ) : (
                 <button onClick={() => setConfirmDel(rec.date)}
-                  className="flex w-full items-center justify-center border-t border-white/5 py-2.5 text-[11px] font-semibold text-slate-500 active:bg-white/5 transition-colors">
+                  className="flex w-full items-center justify-center border-t border-white/5 py-3 text-[12.5px] font-semibold text-slate-500 active:bg-white/5 transition-colors">
                   ลบข้อมูลนี้
                 </button>
               )}
@@ -426,12 +430,12 @@ function HistoryTab({ records, pinHash, onLoad, onDelete }: {
       )}
 
       {/* export */}
-      <div className="rounded-[20px] border border-white/10 bg-white/[0.04] p-4.5 space-y-4 mt-6">
-        <h3 className="text-[11px] font-bold uppercase tracking-widest text-slate-500">ดาวน์โหลดข้อมูล (.txt)</h3>
-        <div className="flex gap-2">
+      <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-5 space-y-4.5 mt-8">
+        <h3 className="text-[12px] font-bold uppercase tracking-widest text-slate-500">ดาวน์โหลดข้อมูล (.txt)</h3>
+        <div className="flex gap-2.5">
           {(['day', 'week', 'month'] as ExportRange[]).map((r) => (
             <button key={r} onClick={() => setRange(r)}
-              className={`flex-1 rounded-[14px] py-2.5 text-[13px] font-bold transition-all ${
+              className={`flex-1 rounded-[16px] py-3 text-[14px] font-bold transition-all ${
                 range === r 
                   ? 'bg-sky-500 text-white shadow-[0_0_12px_rgba(56,189,248,0.3)] ring-1 ring-white/20' 
                   : 'bg-white/5 text-slate-400 active:bg-white/10'
@@ -441,10 +445,10 @@ function HistoryTab({ records, pinHash, onLoad, onDelete }: {
           ))}
         </div>
         <button onClick={handleExport}
-          className="w-full rounded-[14px] bg-white/10 py-3.5 text-[14px] font-bold text-white active:scale-[0.98] transition-all ring-1 ring-white/10">
+          className="w-full rounded-[16px] bg-white/10 py-4 text-[15px] font-bold text-white active:scale-[0.98] transition-all ring-1 ring-white/10">
           {exported ? '✓ ดาวน์โหลดเรียบร้อย' : '⬇️ ดาวน์โหลดไฟล์'}
         </button>
-        <p className="text-center text-[11px] font-medium text-slate-500">
+        <p className="text-center text-[12.5px] font-medium text-slate-500">
           นำไฟล์ไปวางใน ChatGPT / Claude เพื่อให้ AI สรุปแนวโน้มให้
         </p>
       </div>
