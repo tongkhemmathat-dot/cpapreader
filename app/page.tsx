@@ -19,7 +19,7 @@ const FIELDS: { key: keyof FormData; label: string; unit: string; placeholder: s
   { key: 'pressure', label: 'ความดันเฉลี่ย', unit: 'hPa',      placeholder: '9.2',  desc: 'ความดันลมเฉลี่ยตลอดคืน (1 hPa ≈ 1 cmH₂O)' },
   { key: 'p90',      label: 'P90',         unit: 'hPa',       placeholder: '11.4', desc: 'ความดันที่เครื่องใช้จริง 90% ของเวลา' },
   { key: 'cai',      label: 'CAI',         unit: '/ชม.',      placeholder: '0.3',  desc: 'การหยุดหายใจจากสมอง (central) ควร < 1' },
-  { key: 'apnea',    label: 'การหยุดหายใจ', unit: '/ชม.',      placeholder: '1.2',  desc: 'จำนวนครั้งที่หยุดหายใจสนิท' },
+  { key: 'apnea',    label: 'Apnea Index', unit: '/ชม.',      placeholder: '1.2',  desc: 'จำนวนครั้งที่หยุดหายใจสนิท' },
   { key: 'hi',       label: 'HI',          unit: '/ชม.',      placeholder: '0.9',  desc: 'ดัชนีหายใจตื้น ≥10 วินาที' },
   { key: 'snore',    label: 'การกรน',      unit: '/ชม.',      placeholder: '5.0',  desc: 'จำนวนครั้งที่ตรวจพบเสียงกรน' },
   { key: 'leak90',   label: 'LEAK90',      unit: 'L/min',     placeholder: '18',   desc: 'การรั่วของหน้ากากที่ 90th percentile ควร < 24' },
@@ -44,9 +44,9 @@ export default function Home() {
 
   if (!pinHash) return <PinGate onUnlock={handleUnlock} />;
   if (syncing) return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-[#0b1220]">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-600 border-t-sky-400" />
-      <p className="text-sm text-slate-400">กำลังซิงค์ข้อมูล…</p>
+    <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-4 bg-black">
+      <div className="h-10 w-10 animate-spin rounded-full border-[3px] border-white/10 border-t-sky-400" />
+      <p className="text-sm font-medium text-slate-400 tracking-wide">กำลังซิงค์ข้อมูล…</p>
     </div>
   );
   return <App pinHash={pinHash} />;
@@ -107,16 +107,18 @@ function App({ pinHash }: { pinHash: string }) {
   }
 
   return (
-    <div className="safe-top flex min-h-screen flex-col bg-[#0b1220]">
+    <div className="safe-top flex min-h-[100dvh] flex-col bg-black selection:bg-sky-500/30">
       {/* scrollable content */}
-      <div className="flex-1 overflow-y-auto pb-24">
+      <div className="flex-1 overflow-y-auto pb-28">
         {/* header */}
-        <div className="px-5 pt-4 pb-2">
-          <h1 className="text-xl font-bold tracking-tight">CPAP Analyzer</h1>
-          <p className="text-xs text-slate-500">{new Date().toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', calendar: 'gregory' })}</p>
+        <div className="px-6 pt-6 pb-4">
+          <h1 className="text-[28px] font-extrabold tracking-tight text-white">CPAP Analyzer</h1>
+          <p className="mt-1 text-sm font-medium text-slate-400 capitalize-first">
+            {new Date().toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', calendar: 'gregory' })}
+          </p>
         </div>
 
-        <div className="px-4">
+        <div className="px-5">
           {tab === 'form' && (
             <FormTab form={form} error={error} result={result} saved={saved}
               onChange={handleChange} onClear={handleClear} onSubmit={handleSubmit} onSave={handleSave} />
@@ -130,10 +132,10 @@ function App({ pinHash }: { pinHash: string }) {
       </div>
 
       {/* bottom tab bar */}
-      <nav className={`safe-bottom fixed inset-x-0 bottom-0 border-t border-white/10 bg-black/60 backdrop-blur-2xl supports-[backdrop-filter]:bg-black/40 transition-transform duration-300 ${isKeyboardOpen ? 'translate-y-full' : 'translate-y-0'}`}>
-        <div className="mx-auto flex max-w-xl">
+      <nav className={`safe-bottom fixed inset-x-0 bottom-0 border-t border-white/10 bg-black/50 backdrop-blur-2xl supports-[backdrop-filter]:bg-black/30 transition-transform duration-300 z-50 ${isKeyboardOpen ? 'translate-y-full' : 'translate-y-0'}`}>
+        <div className="mx-auto flex max-w-xl px-2">
           <TabBtn active={tab === 'form'} onClick={() => setTab('form')} icon="✏️" label="บันทึก" />
-          <TabBtn active={tab === 'history'} onClick={() => setTab('history')} icon="📊" label={`ประวัติ${records.length ? ` ${records.length}` : ''}`} />
+          <TabBtn active={tab === 'history'} onClick={() => setTab('history')} icon="📊" label="ประวัติ" badge={records.length} />
           <TabBtn active={tab === 'settings'} onClick={() => setTab('settings')} icon="⚙️" label="ตั้งค่า" />
         </div>
       </nav>
@@ -141,12 +143,18 @@ function App({ pinHash }: { pinHash: string }) {
   );
 }
 
-function TabBtn({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: string; label: string }) {
+function TabBtn({ active, onClick, icon, label, badge }: { active: boolean; onClick: () => void; icon: string; label: string; badge?: number }) {
   return (
     <button onClick={onClick}
-      className={`flex flex-1 flex-col items-center gap-0.5 py-3 text-xs font-medium transition-colors ${active ? 'text-sky-400' : 'text-slate-500'}`}>
-      <span className="text-xl leading-none">{icon}</span>
-      {label}
+      className={`relative flex flex-1 flex-col items-center justify-center gap-1 py-3 transition-colors ${active ? 'text-sky-400' : 'text-slate-500'}`}>
+      <span className={`text-[22px] leading-none transition-transform duration-200 ${active ? 'scale-110 drop-shadow-[0_0_12px_rgba(56,189,248,0.4)]' : 'scale-100 grayscale-[0.5] opacity-80'}`}>{icon}</span>
+      <span className="text-[10px] font-semibold tracking-wide">{label}</span>
+      
+      {!!badge && badge > 0 && (
+        <span className="absolute top-2 right-[25%] flex h-4 min-w-[16px] items-center justify-center rounded-full bg-sky-500 px-1 text-[9px] font-bold text-white ring-2 ring-black">
+          {badge}
+        </span>
+      )}
     </button>
   );
 }
@@ -164,47 +172,51 @@ function FormTab({ form, error, result, saved, onChange, onClear, onSubmit, onSa
 
   return (
     <>
-      <form onSubmit={onSubmit} className="mt-2 space-y-2">
-        <div className="grid grid-cols-2 gap-2">
+      <form onSubmit={onSubmit} className="space-y-3">
+        <div className="grid grid-cols-2 gap-3">
           {FIELDS.map(({ key, label, unit, placeholder, desc }) => (
-            <div key={key} className="rounded-2xl border border-slate-800 bg-slate-900 p-3">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-semibold text-slate-300">{label}</span>
-                <button type="button" onClick={() => setOpenDesc(openDesc === key ? null : key)}
-                  className="text-[10px] text-slate-600 active:text-slate-400">ⓘ</button>
+            <label key={key} className="relative block rounded-[20px] border border-white/10 bg-white/[0.04] p-3.5 transition-colors cursor-text focus-within:border-sky-500/50 focus-within:bg-sky-500/[0.03]">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-semibold tracking-wide text-slate-400">{label}</span>
+                <button type="button" onClick={(e) => { e.preventDefault(); setOpenDesc(openDesc === key ? null : key); }}
+                  className="p-3 -mr-3 -mt-3 text-[11px] opacity-40 hover:opacity-100 active:opacity-100 transition-opacity">ⓘ</button>
               </div>
-              {openDesc === key && (
-                <p className="mb-2 text-[11px] leading-snug text-slate-500 border-b border-slate-800 pb-2">{desc}</p>
-              )}
-              <div className="flex items-baseline gap-1">
+              
+              <div className={`overflow-hidden transition-all duration-300 ease-in-out ${openDesc === key ? 'max-h-24 opacity-100 mb-2' : 'max-h-0 opacity-0 mb-0'}`}>
+                <p className="text-[11px] leading-snug text-slate-400 border-b border-white/5 pb-2">{desc}</p>
+              </div>
+              
+              <div className="flex items-baseline gap-1.5 mt-1">
                 <input
                   type="number" inputMode="decimal" step="any" placeholder={placeholder}
                   value={form[key]} onChange={(e) => onChange(key, e.target.value)}
-                  className="w-full bg-transparent text-xl font-bold text-white placeholder-slate-700 focus:outline-none"
+                  className="w-full bg-transparent text-2xl font-bold text-white placeholder-white/20 focus:outline-none"
                 />
-                <span className="shrink-0 text-xs text-slate-500">{unit}</span>
+                <span className="shrink-0 text-xs font-medium text-slate-500">{unit}</span>
               </div>
-            </div>
+            </label>
           ))}
         </div>
 
         {error && (
-          <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">{error}</div>
+          <div className="rounded-[16px] border border-rose-500/30 bg-rose-500/10 px-4 py-3.5 text-sm font-medium text-rose-300 backdrop-blur-sm">
+            {error}
+          </div>
         )}
 
-        <div className="flex gap-2 pt-1">
+        <div className="flex gap-3 pt-2">
           <button type="submit"
-            className="flex-1 rounded-2xl bg-sky-500 py-4 text-base font-bold text-white shadow-lg shadow-sky-900/40 active:scale-[0.98] transition-transform">
+            className="flex-1 rounded-[20px] bg-gradient-to-b from-sky-400 to-sky-600 py-4 text-base font-bold text-white shadow-[0_4px_20px_rgba(56,189,248,0.25)] ring-1 ring-white/20 active:scale-[0.98] transition-transform">
             วิเคราะห์ผล
           </button>
           <button type="button" onClick={onClear}
-            className="rounded-2xl border border-slate-700 bg-slate-800/80 px-5 py-4 text-sm font-medium text-slate-400 active:scale-[0.98] transition-transform">
+            className="rounded-[20px] bg-white/[0.05] border border-white/10 px-6 py-4 text-sm font-semibold text-slate-300 active:bg-white/[0.1] transition-colors">
             ล้าง
           </button>
         </div>
       </form>
 
-      <div id="result-anchor" />
+      <div id="result-anchor" className="h-4" />
       {result && <ResultCard result={result} saved={saved} onSave={onSave} />}
     </>
   );
@@ -213,44 +225,51 @@ function FormTab({ form, error, result, saved, onChange, onClear, onSubmit, onSa
 // ─── result card ─────────────────────────────────────────────────────────────
 
 const OVERALL_BG: Record<string, string> = {
-  good:    'bg-emerald-500/15 border-emerald-500/30',
-  fair:    'bg-amber-500/15  border-amber-500/30',
-  poor:    'bg-rose-500/15   border-rose-500/30',
-  unknown: 'bg-slate-700/40  border-slate-600/30',
+  good:    'bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 border-emerald-500/30',
+  fair:    'bg-gradient-to-br from-amber-500/20  to-amber-500/5  border-amber-500/30',
+  poor:    'bg-gradient-to-br from-rose-500/20   to-rose-500/5   border-rose-500/30',
+  unknown: 'bg-gradient-to-br from-slate-500/20  to-slate-500/5  border-slate-500/30',
 };
 const OVERALL_TEXT: Record<string, string> = {
-  good: 'text-emerald-300', fair: 'text-amber-300', poor: 'text-rose-300', unknown: 'text-slate-300',
+  good: 'text-emerald-400', fair: 'text-amber-400', poor: 'text-rose-400', unknown: 'text-slate-400',
 };
 const OVERALL_LABEL: Record<string, string> = {
-  good: '🟢 ผลดี', fair: '🟡 พอใช้', poor: '🔴 ควรปรับ', unknown: '⚪ ไม่ทราบ',
+  good: 'ผลดีเยี่ยม', fair: 'พอใช้', poor: 'ควรปรับปรุง', unknown: 'ไม่ทราบ',
+};
+const OVERALL_ICON: Record<string, string> = {
+  good: '🟢', fair: '🟡', poor: '🔴', unknown: '⚪',
 };
 
 function ResultCard({ result, saved, onSave }: { result: Analysis; saved: boolean; onSave: () => void }) {
   const bg = OVERALL_BG[result.overall] ?? OVERALL_BG.unknown;
   const txt = OVERALL_TEXT[result.overall] ?? OVERALL_TEXT.unknown;
+  const icon = OVERALL_ICON[result.overall] ?? OVERALL_ICON.unknown;
 
   return (
-    <section className="mt-4 space-y-3 pb-4">
+    <section className="space-y-4 pb-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* overall banner */}
-      <div className={`rounded-2xl border p-4 ${bg}`}>
-        <div className="flex items-start justify-between gap-3">
+      <div className={`relative overflow-hidden rounded-[24px] border p-5 ${bg} backdrop-blur-md`}>
+        <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
-            <div className={`text-lg font-bold ${txt}`}>{OVERALL_LABEL[result.overall]}</div>
-            <p className="mt-1 text-sm text-slate-300 leading-relaxed">{result.summary}</p>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xl">{icon}</span>
+              <h2 className={`text-lg font-bold tracking-wide ${txt}`}>{OVERALL_LABEL[result.overall]}</h2>
+            </div>
+            <p className="text-[13px] text-slate-300 leading-relaxed font-medium">{result.summary}</p>
           </div>
           <button onClick={onSave} disabled={saved}
-            className={`shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all active:scale-95 ${
-              saved ? 'bg-slate-700/60 text-slate-500' : 'bg-white/15 text-white active:bg-white/25'}`}>
-            {saved ? '✓ บันทึก' : '💾 บันทึก'}
+            className={`shrink-0 rounded-[14px] px-4 py-2.5 text-sm font-bold transition-all active:scale-95 ${
+              saved ? 'bg-white/5 text-slate-500 ring-1 ring-white/5' : 'bg-white/10 text-white ring-1 ring-white/20 active:bg-white/20 shadow-lg'}`}>
+            {saved ? 'บันทึกแล้ว' : 'บันทึก'}
           </button>
         </div>
       </div>
 
       {/* metrics grid */}
       {result.metrics?.length > 0 && (
-        <div className="space-y-1.5">
-          <p className="px-1 text-xs font-semibold uppercase tracking-wider text-slate-500">ผลแต่ละค่า</p>
-          <div className="grid grid-cols-1 gap-1.5">
+        <div className="space-y-2 pt-2">
+          <h3 className="px-2 text-[11px] font-bold uppercase tracking-widest text-slate-500">ผลวิเคราะห์แต่ละค่า</h3>
+          <div className="grid grid-cols-1 gap-2">
             {result.metrics.map((m, i) => <MetricRow key={i} metric={m} />)}
           </div>
         </div>
@@ -258,37 +277,50 @@ function ResultCard({ result, saved, onSave }: { result: Analysis; saved: boolea
 
       {/* recommendations */}
       {result.recommendations?.length > 0 && (
-        <div className="space-y-1.5">
-          <p className="px-1 text-xs font-semibold uppercase tracking-wider text-slate-500">คำแนะนำ</p>
+        <div className="space-y-2 pt-2">
+          <h3 className="px-2 text-[11px] font-bold uppercase tracking-widest text-slate-500">คำแนะนำ</h3>
           <div className="space-y-2">
             {result.recommendations.map((r, i) => (
-              <div key={i} className="flex gap-3 rounded-2xl border border-slate-800 bg-slate-900 px-4 py-3">
-                <span className="mt-0.5 text-base">💡</span>
-                <p className="text-sm text-slate-200 leading-relaxed">{r}</p>
+              <div key={i} className="flex gap-3.5 rounded-[20px] border border-white/5 bg-white/[0.03] px-4 py-3.5">
+                <span className="mt-0.5 text-base opacity-90">💡</span>
+                <p className="text-[13.5px] font-medium text-slate-200 leading-relaxed">{r}</p>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      <p className="px-1 text-[11px] text-slate-600">* ไม่ใช่คำวินิจฉัยทางการแพทย์ ปรึกษาแพทย์ก่อนปรับการใช้งาน</p>
+      <div className="pt-2 px-2">
+        <p className="text-[10px] font-medium text-slate-600">* ไม่ใช่อุปกรณ์ทางการแพทย์ โปรดพิจารณาร่วมกับคำแนะนำของแพทย์</p>
+      </div>
     </section>
   );
 }
 
 function MetricRow({ metric: m }: { metric: Metric }) {
   const [open, setOpen] = useState(false);
-  const left = m.status === 'alert' ? 'border-l-rose-400' : m.status === 'warning' ? 'border-l-amber-400' : 'border-l-emerald-400';
-  const valColor = m.status === 'alert' ? 'text-rose-300' : m.status === 'warning' ? 'text-amber-300' : 'text-emerald-300';
+  
+  const statusConfig = {
+    alert:   { color: 'text-rose-400',    bg: 'bg-rose-500/10',    border: 'border-rose-500/20' },
+    warning: { color: 'text-amber-400',   bg: 'bg-amber-500/10',   border: 'border-amber-500/20' },
+    normal:  { color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+  };
+  const conf = statusConfig[m.status];
 
   return (
-    <button onClick={() => setOpen((o) => !o)} className={`w-full text-left rounded-2xl border border-slate-800 bg-slate-900 border-l-4 ${left} px-4 py-3 active:bg-slate-800 transition-colors`}>
+    <button onClick={() => setOpen((o) => !o)} 
+      className={`w-full text-left rounded-[20px] border ${conf.border} bg-white/[0.02] p-4 active:bg-white/[0.04] transition-colors`}>
       <div className="flex items-center justify-between gap-3">
-        <span className="text-sm text-slate-300 font-medium">{m.label}</span>
-        <span className={`text-base font-bold ${valColor}`}>{m.value}</span>
+        <span className="text-[13px] font-semibold text-slate-300">{m.label}</span>
+        <div className={`flex items-center gap-2 rounded-[10px] ${conf.bg} px-2.5 py-1`}>
+          <span className={`text-[13px] font-bold ${conf.color}`}>{m.value}</span>
+        </div>
       </div>
-      {open && <p className="mt-2 text-xs text-slate-400 leading-relaxed border-t border-slate-800 pt-2">{m.note}</p>}
-      {!open && <p className="mt-0.5 text-xs text-slate-600 truncate">{m.note}</p>}
+      
+      <div className={`overflow-hidden transition-all duration-300 ease-in-out ${open ? 'max-h-32 mt-3 opacity-100' : 'max-h-0 opacity-0'}`}>
+        <p className="text-[12px] font-medium text-slate-400 leading-relaxed border-t border-white/5 pt-3">{m.note}</p>
+      </div>
+      {!open && <p className="mt-1.5 text-[11px] font-medium text-slate-500 truncate">{m.note}</p>}
     </button>
   );
 }
@@ -332,59 +364,60 @@ function HistoryTab({ records, pinHash, onLoad, onDelete }: {
     setExported(true); setTimeout(() => setExported(false), 2000);
   }
 
-  const fmtDate = (d: string) => new Date(d).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric', calendar: 'gregory' });
-  const overallIcon: Record<string, string> = { good: '🟢', fair: '🟡', poor: '🔴', unknown: '⚪' };
+  const fmtDate = (d: string) => new Date(d).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
 
   return (
-    <div className="mt-2 space-y-4">
+    <div className="space-y-4 animate-in fade-in duration-300">
       {/* sync row */}
-      <div className="flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-900 px-4 py-3">
-        <div className={`flex items-center gap-2 text-xs ${synced ? 'text-emerald-400' : 'text-slate-500'}`}>
-          <span className={`h-2 w-2 rounded-full ${synced ? 'bg-emerald-400' : 'bg-slate-600'}`} />
-          {synced ? (syncStatus !== 'idle' ? syncMsg : 'Cloud sync') : 'Local only'}
+      <div className="flex items-center justify-between rounded-[20px] border border-white/10 bg-white/[0.04] px-4 py-3">
+        <div className={`flex items-center gap-2.5 text-[13px] font-medium ${synced ? 'text-emerald-400' : 'text-slate-500'}`}>
+          <span className={`h-2 w-2 rounded-full ${synced ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]' : 'bg-slate-600'}`} />
+          {synced ? (syncStatus !== 'idle' ? syncMsg : 'Cloud Sync เปิดใช้งาน') : 'บันทึกในเครื่องเท่านั้น'}
         </div>
         {synced && (
           <button onClick={handleSync} disabled={syncStatus === 'syncing'}
-            className="flex items-center gap-1.5 rounded-xl bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-300 active:scale-95 disabled:opacity-50 transition-all">
+            className="flex items-center gap-1.5 rounded-[12px] bg-white/10 px-3 py-1.5 text-xs font-bold text-white active:scale-95 disabled:opacity-50 transition-all">
             {syncStatus === 'syncing'
-              ? <><span className="h-3 w-3 animate-spin rounded-full border border-slate-600 border-t-sky-400" />กำลัง sync</>
-              : '☁️ Sync'}
+              ? <><span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/20 border-t-white" /> ซิงค์...</>
+              : '☁️ ซิงค์'}
           </button>
         )}
       </div>
 
       {/* record list */}
       {records.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-700 py-12 text-center">
-          <p className="text-slate-500 text-sm">ยังไม่มีข้อมูลที่บันทึก</p>
-          <p className="text-slate-600 text-xs mt-1">กรอกผลแล้วกด 💾 บันทึก</p>
+        <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] py-14 text-center">
+          <p className="text-slate-400 text-sm font-medium">ยังไม่มีข้อมูลที่บันทึก</p>
+          <p className="text-slate-500 text-xs mt-1.5">กรอกผลในหน้าแรกแล้วกดบันทึก</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           {records.map((rec) => (
-            <div key={rec.id} className="rounded-2xl border border-slate-800 bg-slate-900 overflow-hidden">
-              <button onClick={() => onLoad(rec)} className="flex w-full items-center gap-3 px-4 py-3.5 active:bg-slate-800 transition-colors">
-                <span className="text-xl">{overallIcon[rec.result.overall] ?? '⚪'}</span>
+            <div key={rec.id} className="rounded-[20px] border border-white/10 bg-white/[0.04] overflow-hidden">
+              <button onClick={() => onLoad(rec)} className="flex w-full items-center gap-4 px-4 py-4 active:bg-white/[0.06] transition-colors">
+                <span className="text-[22px] drop-shadow-md">{OVERALL_ICON[rec.result.overall] ?? '⚪'}</span>
                 <div className="flex-1 text-left">
-                  <div className="text-sm font-semibold text-slate-200">{fmtDate(rec.date)}</div>
-                  <div className="text-xs text-slate-500 mt-0.5 line-clamp-1">{rec.result.summary}</div>
+                  <div className="text-[14px] font-bold text-white tracking-wide">{fmtDate(rec.date)}</div>
+                  <div className="text-[12px] font-medium text-slate-400 mt-0.5 line-clamp-1">{rec.result.summary}</div>
                 </div>
                 <div className="text-right shrink-0">
-                  {rec.form.ahi && <div className="text-sm font-bold text-slate-300">AHI {rec.form.ahi}</div>}
-                  {rec.form.usage && <div className="text-xs text-slate-500">{rec.form.usage} ชม.</div>}
+                  {rec.form.ahi && <div className="text-[14px] font-bold text-sky-400">AHI {rec.form.ahi}</div>}
+                  {rec.form.usage && <div className="text-[11px] font-medium text-slate-500 mt-0.5">{rec.form.usage} ชม.</div>}
                 </div>
               </button>
+              
+              {/* Delete state */}
               {confirmDel === rec.date ? (
-                <div className="flex border-t border-slate-800">
+                <div className="flex border-t border-white/10 bg-rose-500/10">
                   <button onClick={() => setConfirmDel(null)}
-                    className="flex-1 py-2.5 text-xs text-slate-400 active:bg-slate-800">ยกเลิก</button>
+                    className="flex-1 py-3 text-[13px] font-semibold text-slate-400 active:bg-white/5">ยกเลิก</button>
                   <button onClick={() => { onDelete(rec.date); setConfirmDel(null); }}
-                    className="flex-1 py-2.5 text-xs font-semibold text-rose-400 active:bg-slate-800 border-l border-slate-800">ลบ</button>
+                    className="flex-1 py-3 text-[13px] font-bold text-rose-400 active:bg-rose-500/20 border-l border-white/10">ยืนยันลบ</button>
                 </div>
               ) : (
                 <button onClick={() => setConfirmDel(rec.date)}
-                  className="flex w-full items-center justify-center border-t border-slate-800 py-2 text-xs text-slate-600 active:bg-slate-800 transition-colors">
-                  ลบ
+                  className="flex w-full items-center justify-center border-t border-white/5 py-2.5 text-[11px] font-semibold text-slate-500 active:bg-white/5 transition-colors">
+                  ลบข้อมูลนี้
                 </button>
               )}
             </div>
@@ -393,21 +426,27 @@ function HistoryTab({ records, pinHash, onLoad, onDelete }: {
       )}
 
       {/* export */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 space-y-3">
-        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Export เป็น .txt</p>
+      <div className="rounded-[20px] border border-white/10 bg-white/[0.04] p-4.5 space-y-4 mt-6">
+        <h3 className="text-[11px] font-bold uppercase tracking-widest text-slate-500">ดาวน์โหลดข้อมูล (.txt)</h3>
         <div className="flex gap-2">
           {(['day', 'week', 'month'] as ExportRange[]).map((r) => (
             <button key={r} onClick={() => setRange(r)}
-              className={`flex-1 rounded-xl py-2.5 text-sm font-medium transition-colors ${range === r ? 'bg-sky-500 text-white' : 'border border-slate-700 text-slate-400 active:bg-slate-800'}`}>
-              {r === 'day' ? 'วันนี้' : r === 'week' ? 'สัปดาห์' : 'เดือน'}
+              className={`flex-1 rounded-[14px] py-2.5 text-[13px] font-bold transition-all ${
+                range === r 
+                  ? 'bg-sky-500 text-white shadow-[0_0_12px_rgba(56,189,248,0.3)] ring-1 ring-white/20' 
+                  : 'bg-white/5 text-slate-400 active:bg-white/10'
+              }`}>
+              {r === 'day' ? 'วันนี้' : r === 'week' ? '7 วัน' : '30 วัน'}
             </button>
           ))}
         </div>
         <button onClick={handleExport}
-          className="w-full rounded-xl bg-slate-700 py-3 text-sm font-semibold text-white active:bg-slate-600 transition-colors">
-          {exported ? '✓ ดาวน์โหลดแล้ว' : '⬇️ ดาวน์โหลด .txt'}
+          className="w-full rounded-[14px] bg-white/10 py-3.5 text-[14px] font-bold text-white active:scale-[0.98] transition-all ring-1 ring-white/10">
+          {exported ? '✓ ดาวน์โหลดเรียบร้อย' : '⬇️ ดาวน์โหลดไฟล์'}
         </button>
-        <p className="text-[11px] text-slate-600">นำไปวางใน ChatGPT / Claude เพื่อวิเคราะห์แนวโน้ม</p>
+        <p className="text-center text-[11px] font-medium text-slate-500">
+          นำไฟล์ไปวางใน ChatGPT / Claude เพื่อให้ AI สรุปแนวโน้มให้
+        </p>
       </div>
     </div>
   );
