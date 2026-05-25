@@ -1,14 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { analyzeLocal } from './lib/analyze';
+import type { Analysis } from './lib/analyze';
 
-type Metric = { label: string; value: string; note?: string };
-type Analysis = {
-  summary: string;
-  overall: 'good' | 'fair' | 'poor' | 'unknown';
-  metrics: Metric[];
-  recommendations: string[];
-};
 
 type FormData = {
   usage: string;
@@ -45,8 +40,7 @@ const OVERALL_STYLE: Record<string, string> = {
 
 export default function Home() {
   const [form, setForm] = useState<FormData>(EMPTY);
-  const [loading, setLoading] = useState(false);
-  const [error, setError]   = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Analysis | null>(null);
 
   function handleChange(key: keyof FormData, value: string) {
@@ -55,34 +49,12 @@ export default function Home() {
     setError(null);
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const filled = FIELDS.filter((f) => form[f.key].trim());
     if (!filled.length) { setError('กรุณากรอกค่าอย่างน้อย 1 ช่อง'); return; }
-
-    setLoading(true);
     setError(null);
-    setResult(null);
-    try {
-      const res = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ formData: form }),
-      });
-      let json: any;
-      try {
-        json = await res.json();
-      } catch {
-        const raw = await res.text().catch(() => '');
-        throw new Error(`Server error ${res.status}: ${raw.slice(0, 120) || 'ไม่ทราบสาเหตุ'}`);
-      }
-      if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
-      setResult(json);
-    } catch (err: any) {
-      setError(err.message || 'เกิดข้อผิดพลาด');
-    } finally {
-      setLoading(false);
-    }
+    setResult(analyzeLocal(form));
   }
 
   return (
@@ -122,15 +94,9 @@ export default function Home() {
         <div className="flex gap-2 pt-1">
           <button
             type="submit"
-            disabled={loading}
-            className="flex-1 rounded-xl bg-sky-500 py-3 font-semibold text-white shadow-lg active:scale-[0.99] disabled:opacity-50"
+            className="flex-1 rounded-xl bg-sky-500 py-3 font-semibold text-white shadow-lg active:scale-[0.99]"
           >
-            {loading ? (
-              <span className="flex items-center justify-center gap-2">
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                กำลังวิเคราะห์…
-              </span>
-            ) : 'วิเคราะห์ผล'}
+            วิเคราะห์ผล
           </button>
           <button
             type="button"
@@ -153,15 +119,22 @@ export default function Home() {
             <div className="rounded-2xl border border-slate-700 bg-slate-900/60 p-4">
               <div className="mb-2 text-xs uppercase tracking-wide text-slate-400">การประเมินค่าแต่ละรายการ</div>
               <ul className="divide-y divide-slate-800">
-                {result.metrics.map((m, i) => (
-                  <li key={i} className="flex items-baseline justify-between gap-3 py-2">
-                    <span className="text-sm text-slate-300">{m.label}</span>
-                    <span className="text-right">
-                      <div className="font-semibold">{m.value}</div>
-                      {m.note && <div className="text-xs text-slate-400">{m.note}</div>}
-                    </span>
-                  </li>
-                ))}
+                {result.metrics.map((m, i) => {
+                  const dot = m.status === 'alert' ? 'bg-rose-400' : m.status === 'warning' ? 'bg-amber-400' : 'bg-emerald-400';
+                  const noteColor = m.status === 'alert' ? 'text-rose-300' : m.status === 'warning' ? 'text-amber-300' : 'text-slate-400';
+                  return (
+                    <li key={i} className="flex items-start justify-between gap-3 py-2">
+                      <div className="flex items-center gap-2 pt-0.5">
+                        <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${dot}`} />
+                        <span className="text-sm text-slate-300">{m.label}</span>
+                      </div>
+                      <span className="text-right">
+                        <div className="font-semibold">{m.value}</div>
+                        <div className={`text-xs ${noteColor}`}>{m.note}</div>
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}
