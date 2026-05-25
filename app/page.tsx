@@ -65,7 +65,13 @@ export default function Home() {
       patch(id, { status: 'ocr' });
 
       // step 2: OCR in browser
-      const ocrText = await runOcr(compressed.dataUrl);
+      let ocrText = '';
+      try {
+        const ocr = await runOcr(compressed.dataUrl);
+        ocrText = ocr;
+      } catch (ocrErr: any) {
+        throw new Error(`OCR ล้มเหลว: ${ocrErr?.message ?? ocrErr}`);
+      }
       if (!ocrText.trim()) throw new Error('อ่านตัวอักษรจากภาพไม่ได้ ลองถ่ายใหม่ให้ชัดขึ้น');
       patch(id, { ocrText, status: 'analyzing' });
 
@@ -260,12 +266,8 @@ async function compressImage(file: File, maxDim: number, quality: number): Promi
 
 async function runOcr(dataUrl: string): Promise<string> {
   const { createWorker } = await import('tesseract.js');
-  // eng for numbers/labels; also load tha in case of Thai labels
-  const worker = await createWorker(['eng', 'tha'], 1, {
-    workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
-    langPath: 'https://tessdata.projectnaptha.com/4.0.0',
-    corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core-simd-lstm.wasm.js',
-  });
+  // eng เพียงพอสำหรับตัวเลขและป้าย CPAP — ไม่ต้องโหลด tha เพื่อลดเวลา
+  const worker = await createWorker('eng');
   try {
     const { data } = await worker.recognize(dataUrl);
     return data.text;
