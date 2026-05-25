@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -30,45 +30,30 @@ export async function POST(req: NextRequest) {
     const { imageBase64, mediaType } = await req.json();
     if (!imageBase64) return NextResponse.json({ error: 'missing imageBase64' }, { status: 400 });
 
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) return NextResponse.json({ error: 'ANTHROPIC_API_KEY ยังไม่ได้ตั้งค่า' }, { status: 500 });
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) return NextResponse.json({ error: 'GEMINI_API_KEY ยังไม่ได้ตั้งค่า' }, { status: 500 });
 
-    const client = new Anthropic({ apiKey });
-
-    const msg = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1500,
-      system: SYSTEM_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: { type: 'base64', media_type: mediaType || 'image/jpeg', data: imageBase64 },
-            },
-            { type: 'text', text: 'วิเคราะห์ภาพหน้าจอ CPAP นี้ ตอบเป็น JSON ตาม schema เท่านั้น' },
-          ],
-        },
-      ],
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.0-flash',
+      systemInstruction: SYSTEM_PROMPT,
     });
 
-    const text = msg.content
-      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-      .map((b) => b.text)
-      .join('\n')
-      .trim();
+    const result = await model.generateContent([
+      { text: 'วิเคราะห์ภาพหน้าจอ CPAP นี้ ตอบเป็น JSON ตาม schema เท่านั้น' },
+      { inlineData: { mimeType: mediaType || 'image/jpeg', data: imageBase64 } },
+    ]);
 
+    const text = result.response.text().trim();
     const cleaned = text.replace(/^```(?:json)?\s*|\s*```$/g, '').trim();
+
     let parsed;
     try {
       parsed = JSON.parse(cleaned);
     } catch {
-      return NextResponse.json(
-        { error: 'โมเดลตอบกลับไม่ใช่ JSON ที่อ่านได้', raw: text },
-        { status: 502 },
-      );
+      return NextResponse.json({ error: 'โมเดลตอบกลับไม่ใช่ JSON ที่อ่านได้', raw: text }, { status: 502 });
     }
+
     return NextResponse.json(parsed);
   } catch (err: any) {
     console.error(err);
