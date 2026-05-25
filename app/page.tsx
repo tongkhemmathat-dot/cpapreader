@@ -19,7 +19,7 @@ const FIELDS: { key: keyof FormData; label: string; unit: string; placeholder: s
   { key: 'pressure', label: 'ความดันเฉลี่ย', unit: 'hPa',      placeholder: '9.2',  desc: 'ความดันลมเฉลี่ยตลอดคืน (1 hPa ≈ 1 cmH₂O)' },
   { key: 'p90',      label: 'P90',         unit: 'hPa',       placeholder: '11.4', desc: 'ความดันที่เครื่องใช้จริง 90% ของเวลา' },
   { key: 'cai',      label: 'CAI',         unit: '/ชม.',      placeholder: '0.3',  desc: 'การหยุดหายใจจากสมอง (central) ควร < 1' },
-  { key: 'apnea',    label: 'Apnea Index', unit: '/ชม.',      placeholder: '1.2',  desc: 'จำนวนครั้งที่หยุดหายใจสนิท' },
+  { key: 'apnea',    label: 'การหยุดหายใจ', unit: '/ชม.',      placeholder: '1.2',  desc: 'จำนวนครั้งที่หยุดหายใจสนิท' },
   { key: 'hi',       label: 'HI',          unit: '/ชม.',      placeholder: '0.9',  desc: 'ดัชนีหายใจตื้น ≥10 วินาที' },
   { key: 'snore',    label: 'การกรน',      unit: '/ชม.',      placeholder: '5.0',  desc: 'จำนวนครั้งที่ตรวจพบเสียงกรน' },
   { key: 'leak90',   label: 'LEAK90',      unit: 'L/min',     placeholder: '18',   desc: 'การรั่วของหน้ากากที่ 90th percentile ควร < 24' },
