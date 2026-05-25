@@ -16,7 +16,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Analysis | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const browseRef = useRef<HTMLInputElement>(null);
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -118,22 +119,36 @@ export default function Home() {
         </section>
       )}
 
-      <div className="fixed inset-x-0 bottom-0 border-t border-slate-800 bg-slate-950/90 p-4 backdrop-blur">
+      <div className="fixed inset-x-0 bottom-0 border-t border-slate-800 bg-slate-950/90 p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] backdrop-blur">
         <div className="mx-auto flex max-w-xl gap-2">
           <input
-            ref={fileRef}
+            ref={cameraRef}
             type="file"
             accept="image/*"
             capture="environment"
             className="hidden"
             onChange={onFile}
           />
+          <input
+            ref={browseRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={onFile}
+          />
           <button
-            onClick={() => fileRef.current?.click()}
+            onClick={() => cameraRef.current?.click()}
             disabled={loading}
             className="flex-1 rounded-xl bg-sky-500 px-4 py-3 font-semibold text-white shadow-lg active:scale-[0.99] disabled:opacity-50"
           >
-            {preview ? 'ถ่าย/เลือกภาพใหม่' : 'ถ่ายรูปหน้าจอ CPAP'}
+            📷 ถ่ายรูป
+          </button>
+          <button
+            onClick={() => browseRef.current?.click()}
+            disabled={loading}
+            className="flex-1 rounded-xl border border-slate-600 bg-slate-800 px-4 py-3 font-semibold text-slate-100 active:scale-[0.99] disabled:opacity-50"
+          >
+            🖼️ เลือกจากคลัง
           </button>
         </div>
       </div>
